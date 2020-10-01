@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry exported="true" kind="lib" path="data/bcpkix-jdk15on-161.jar"/>
+	<classpathentry exported="true" kind="lib" path="data/bcprov-jdk15on-161.jar"/>
+	<classpathentry exported="true" kind="lib" path="data/GLoad 1.3.jar"/>
+	<classpathentry exported="true" kind="lib" path="data/poi-4.1.0.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
