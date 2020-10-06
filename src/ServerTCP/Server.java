@@ -69,10 +69,12 @@ public class Server {
 					DataInputStream dIn = new DataInputStream(socketCli[numClientes].getInputStream());
 					if (numeroArchivo == 1) {
 						dOut.writeByte(1);
+						dOut.writeInt(numClientes);
 						dOut.writeUTF(NOMBRE_1);
 						dOut.flush();
 					} else {
 						dOut.writeByte(1);
+						dOut.writeInt(numClientes);
 						dOut.writeUTF(NOMBRE_2);
 						dOut.flush();
 					}

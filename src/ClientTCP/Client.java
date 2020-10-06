@@ -6,6 +6,7 @@ import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -20,7 +21,7 @@ import java.util.Scanner;
 
 public class Client {
 
-	private static final int MESSAGE_SIZE = 1024;
+	private static final int BUFFER_SIZE = 1024;
 	
 	private static final String DIR_DESCARGA = "data/descargas/des_";
 	public final static String UBICACION_LOG = "data/logs/log_";
@@ -75,7 +76,7 @@ public class Client {
 				// 3. Enviar notificación de preparado para recibir datos de parte del servidor.
 				// INFORMA AL SERVIDOR QUE SE VA A INICIAR LA DESCARGA
 				outputStream.writeByte(2);
-				download(id, fileName, socket);
+				fileDownload(id, fileName, socket);
 			}
 			else {
 				System.out.println("Formato erróneo");
@@ -99,125 +100,165 @@ public class Client {
 		}
 	}
 
-	public static void download( int id, String fileName, Socket socket ) {
-		
+	/**
+	 * 
+	 * @param id
+	 * @param fileName
+	 * @param socket
+	 * @throws IOException
+	 */
+	public static void fileDownload( int id, String fileName, Socket socket ) throws IOException {
+		// CANAL PARA LECTURA DEL ARCHIVO
+		FileOutputStream _FOS = new FileOutputStream(DIR_DESCARGA + fileName);
+		BufferedOutputStream _BOS  = new BufferedOutputStream(_FOS);;
 
+		// CANAL DE COMUNICACIÓN CON EL SERVIDOR
+		DataInputStream _DIS = new DataInputStream(socket.getInputStream());
+		DataOutputStream _DOS = new DataOutputStream(socket.getOutputStream());
 		
-		
-		int currentByte = 0;
-
 		try {
 			
-			// CANAL PARA LECTURA DEL ARCHIVO
-			FileOutputStream _FOS = new FileOutputStream(DIR_DESCARGA + fileName);
-			BufferedOutputStream _BOS = new BufferedOutputStream(_FOS);
-
 			// LOG DE LA FECHA, NOMBRE Y TAMAÑO
 			String timeLog = new SimpleDateFormat("HH-mm-ss_dd/MM/yyyy").format(Calendar.getInstance().getTime());
-			writeLog("Time_Date: " + timeLog);
-			writeLog("File name: " + fileName + ".");
-			writeLog("File size: " + MESSAGE_SIZE + " bytes.");
-
-			// Recibir Hash
-			DataInputStream dIn = new DataInputStream(socket.getInputStream());
-			String hashRecibido = dIn.readUTF();
+			writeLog("Hora_Fecha: " + timeLog);
+			writeLog("Nombre del archivo: " + fileName + ".");
+			writeLog("Tamaño máximo de los paquetes: " + BUFFER_SIZE + " bytes.");
 			
-			// Comenzar a recibir el archivo
+			// RECIBE EL HASH DEL ARCHIVO
+			String serverHash = _DIS.readUTF();
+			
+			// RECIBE EL TAMAÑO DEL ARCHIVO
+			int fileSize = _DIS.readInt();
+			
 			// INICIALIZACION DEL BUFFER Y EL INPUTSTREAM PARA RECIBIR EL ARCHIVO
-			byte[] bufferByte = new byte[700000000];
+			byte[] buffer = new byte[fileSize];
 			InputStream is = socket.getInputStream();
 			
+			// 4. Recibir un archivo del servidor por medio de una comunicación a través de sockets TCP.
 			// EN EL MOMENTO EN QUE SE RECIBA EL PRIMER PAQUETE SE INICIA LA RECEPCIÓN DEL ARCHIVO
 			int readedBytes = 0;
 			while (readedBytes == 0) {
-				readedBytes = is.read(bufferByte, 0, bufferByte.length);
+				readedBytes = is.read(buffer, 0, BUFFER_SIZE);
 			}
 			System.out.println("Inicia la descarga");
-			currentByte = readedBytes;
+			int currentByte = readedBytes;
 			int numPaquetes = 1;
 
 			// VARIABLE PARA MEDIR EL TIEMPO DE DESCARGA
-			long startTime = System.currentTimeMillis();
-
-			int totalMessages = 0;
-			int totalBytes = 0;
-			do {
+			long totalTime = System.currentTimeMillis();
+			
+			// LECTURA DE LOS SIGUIENTES PAQUETES
+			readedBytes = is.read(buffer, currentByte, BUFFER_SIZE);
+			while (readedBytes > -1) {
 				// LECTURA DE UN PAQUETE
-				readedBytes = is.read(bufferByte, currentByte, (bufferByte.length - currentByte));
 				numPaquetes++;
-				
-				// CALCULO DEL TOTAL DE BYTES LEÍDOS Y EL NÚMERO DE MENSAJES LEÍDOS
-				totalBytes += readedBytes;
-				if (totalBytes >= MESSAGE_SIZE) {
-					int readedMessages =  (totalBytes / MESSAGE_SIZE);
-					totalMessages += readedMessages;
-					totalBytes -= MESSAGE_SIZE * readedMessages;
-				}
-				
+		
 				// ACTUALIZACIÓN DEL BYTE ACTUAL DEL MENSAJE
 				if (readedBytes >= 0)
 					currentByte += readedBytes;
 				
-			} while (readedBytes > -1);
+				// LECTURA DEL SIGUIENTE PAQUETE
+				readedBytes = is.read(buffer, currentByte, BUFFER_SIZE);
+			}
+			// SE GUARDA EL TIEMPO TOTAL EN EJECUTARSE
+			totalTime = System.currentTimeMillis() - totalTime;
 
-			_BOS.write(bufferByte, 0, currentByte);
-			_BOS.flush();
-
-			long endTime = System.currentTimeMillis();
+			// 5. Verificar la integridad del archivo con respeto a la información entregada por el servidor. 
+			// GENERACIÓN DEL HASH
+			MessageDigest shaDigest = MessageDigest.getInstance("SHA-256");
+			String generatedHash = checkSum(shaDigest, ( new File(DIR_DESCARGA + fileName) ) );
 			
-			System.out.println("Archivo descargado (" + currentByte + " bytes leidos)");
+			// VERIFICACIÓN DE INTEGRIDAD
+			boolean integridad = serverHash.equals(generatedHash);
+			
+			// 6. Enviar notificación de recepción del archivo al servidor.
+			if(integridad) {
+				_DOS.writeByte(1);
+				System.out.println("Verificada la integridad del archivo");
+			}
+			else {
+				_DOS.writeByte(0);
+				System.out.println("Integridad del archivo comprometida");
+			}
 
-			System.out.println("La descarga tomó " + (endTime - startTime) + " milisegundos");
-
-			logWriter.write("Se recibieron en total " + numPaquetes + " paquetes.");
-			logWriter.newLine();
-			logWriter.flush();
-
-			logWriter.write("Archivo descargado (" + currentByte + " bytes leidos)");
-			logWriter.newLine();
-			logWriter.flush();
-
-			logWriter.write("La descarga tomó " + (endTime - startTime) + " milisegundos");
-			logWriter.newLine();
-			logWriter.flush();
-
-			DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
-			dOut.writeByte(id);
-
-			// Verificación del hash
-			File myFile = new File(DIR_DESCARGA + fileName);
-			byte[] bytesArchivo = new byte[(int) myFile.length()];
-			byte[] hashSacado = new byte[1];
-			MessageDigest md = MessageDigest.getInstance("SHA-1");
-			hashSacado = md.digest(bytesArchivo);
-			String hashGenerado = new String(hashSacado);
-			if (hashRecibido.equals(hashGenerado)) {
-				System.out.println("Se completo la verificación del hash exitosamente");
-				logWriter.write("Se verificó la integridad de los archivos recibidos");
-				logWriter.newLine();
-				logWriter.flush();
-			} else
-				System.out.println("No se pudo comprobar la integridad del archivo");
-
-			_FOS.close();
-			_BOS.close();
+			// 7. La aplicación debe reportar si el archivo está completo, correcto y 
+			// el tiempo total de transferencia, para esto genere un log para cada intercambio de
+			// datos entre cliente y servidor.
+			
+			// ALMACENAMIENTO DEL ARCHIVO EN EL LUGAR DE DESCARGA
+			_BOS.write(buffer, 0, currentByte);
+			_BOS.flush();
+			
+			// REPORTE AL USUARIO
+			System.out.println("Descarga terminada. Tamaño del archivo: " + currentByte);
+			System.out.println("Tiempo total de la descarga: " + totalTime );
+			System.out.println("Número de paquetes leídos: " + numPaquetes);
+			System.out.println("El archivo está completo?: " + (currentByte == fileSize) );
+			System.out.println("El archivo está correcto?: " + integridad);
+			
+			// REPORTE GURARDADO EN EL LOG	
+			writeLog("Descarga terminada. Tamaño del archivo: " + currentByte);
+			writeLog("Tiempo total de la descarga: " + totalTime );
+			writeLog("Número de paquetes leídos: " + numPaquetes);
+			writeLog("El archivo está completo?: " + (currentByte == fileSize) );
+			writeLog("El archivo está correcto?: " + integridad);
 
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
-			try {
-				logWriter.write("Hubo un error con el envío");
-				logWriter.newLine();
-				logWriter.flush();
-			} catch (Exception ex) {
-				// TODO: handle exception
-			}
+			writeLog("Error la recepción del archivo: " + e.getMessage());
+		}
+		finally {
+			_FOS.close();
+			_BOS.close(); 
+			_DIS.close();
+			_DOS.close();
 		}
 	}
 
 	
-	public static void writeLog(String message) throws IOException {
+	private static void writeLog(String message) throws IOException {
 		logWriter.write(message);
 		logWriter.newLine();
 		logWriter.flush();
+	}
+	
+	
+	/**
+	 * Checksum hash example from from: https://howtodoinjava.com/java/io/sha-md5-file-checksum-hash/
+	 * @param digest
+	 * @param file
+	 * @return
+	 * @throws IOException
+	 */
+	private static String checkSum(MessageDigest digest, File file) throws IOException
+	{
+	    //Get file input stream for reading the file content
+	    FileInputStream fis = new FileInputStream(file);
+	     
+	    //Create byte array to read data in chunks
+	    byte[] byteArray = new byte[1024];
+	    int bytesCount = 0; 
+	      
+	    //Read file data and update in message digest
+	    while ((bytesCount = fis.read(byteArray)) != -1) {
+	        digest.update(byteArray, 0, bytesCount);
+	    };
+	     
+	    //close the stream; We don't need it now.
+	    fis.close();
+	     
+	    //Get the hash's bytes
+	    byte[] bytes = digest.digest();
+	     
+	    //This bytes[] has bytes in decimal format;
+	    //Convert it to hexadecimal format
+	    StringBuilder sb = new StringBuilder();
+	    for(int i=0; i< bytes.length ;i++)
+	    {
+	        sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+	    }
+	     
+	    //return complete hash
+	   return sb.toString();
 	}
 }
