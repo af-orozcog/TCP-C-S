@@ -45,9 +45,9 @@ public class Client {
 
 		try {
 			// INCIALIZACIÓN DEL LOG SEGÚN FECHA
-			logWriter = new BufferedWriter(new FileWriter(	new File(UBICACION_LOG + 
-										(new SimpleDateFormat("HH-mm-ss_dd/MM/yyyy")
-										.format(Calendar.getInstance().getTime())) + ".txt")));
+			String time = new SimpleDateFormat("dd_MM_yyyy_HH_mm_ss").format(Calendar.getInstance().getTime());
+			File logFile = new File(UBICACION_LOG + time + ".txt");
+			logWriter = new BufferedWriter(new FileWriter(logFile));
 			
 			// 2. Conectarse al servidor TCP y mostrar que se ha realizado dicha conexión. 
 			// 	  Mostrar el estado de la conexión.
