@@ -16,8 +16,8 @@ import java.security.MessageDigest;
 
 public class ProtocolThread extends Thread {
 
-	public final static String ARCHIVO_PATH_1 = "data/videos/video1.mp4";
-	public final static String ARCHIVO_PATH_2 = "data/videos/video2.mp4";
+	public final static String ARCHIVO_PATH_1 = "data/originales/archivo250";
+	public final static String ARCHIVO_PATH_2 = "data/originales/archivo100";
 
 	public final static int MESSAGE_SIZE = 1024; // Tamaño de los paquetes enviados.
 
@@ -92,8 +92,8 @@ public class ProtocolThread extends Thread {
 			MessageDigest shaDigest = MessageDigest.getInstance("SHA-256");
 			String hashEnviar = checkSum(shaDigest, myFile );
 			DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
-			
 			dOut.writeUTF(hashEnviar);
+			dOut.writeInt((int)myFile.length());
 
 			bis.read(myByteArray, 0, myByteArray.length);
 

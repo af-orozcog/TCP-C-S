@@ -26,6 +26,8 @@ public class Client {
 	private static final String DIR_DESCARGA = "data/descargas/des_";
 	public final static String UBICACION_LOG = "data/logs/log_";
 	
+	public static String DIRECCION = "192.168.137.1";
+	public static int PUERTO = 49200;
 	
 	private static BufferedWriter logWriter;
 
@@ -53,15 +55,16 @@ public class Client {
 			// 	  Mostrar el estado de la conexión.
 
 			// CREACIÓN DEL SOCKET 
+			
 			//LECTURA DE IP Y PUERTO PARA REALIZAR LA CONEXIÓN
-			System.out.println("Escriba la dirección ip del servidor al que se desea conectar:");
-			String direccion = console.next();
+			//System.out.println("Escriba la dirección ip del servidor al que se desea conectar:");
+			//String direccion = console.next();
 
-			System.out.println("Escriba el puerto del servidor:");
-			int puerto = console.nextInt();
+			//System.out.println("Escriba el puerto del servidor:");
+			//int puerto = console.nextInt();
 						
 			// CONEXIÓN AL SOCKET
-			socket = new Socket(direccion, puerto);
+			socket = new Socket(DIRECCION, PUERTO);
 			System.out.println("ESTADO DE CONEXIÓN: " + !socket.isClosed() + " Esperando nombre del archivo...");
 
 			// CANAL DE ENTRADA Y SALIDA CON EL SERVIDOR
@@ -69,13 +72,17 @@ public class Client {
 			DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
 						
 			if (inputStream.readByte() == 1) {
-				int id = inputStream.readByte();
-				String fileName = inputStream.readUTF();
-				System.out.println("Nombre del archivo: " + fileName + " - ID del archivo: " + id);
-				
 				// 3. Enviar notificación de preparado para recibir datos de parte del servidor.
+				
+				String fileName = inputStream.readUTF();
+
 				// INFORMA AL SERVIDOR QUE SE VA A INICIAR LA DESCARGA
 				outputStream.writeByte(2);
+				
+				// RECIBE DEL SERVIDOR EL ID Y EL NOMBRE DEL ARCHIVO
+				int id = inputStream.readByte();
+				System.out.println("Nombre del archivo: " + fileName + " - ID del archivo: " + id);
+				
 				fileDownload(id, fileName, socket);
 			}
 			else {
@@ -132,14 +139,14 @@ public class Client {
 			int fileSize = _DIS.readInt();
 			
 			// INICIALIZACION DEL BUFFER Y EL INPUTSTREAM PARA RECIBIR EL ARCHIVO
-			byte[] buffer = new byte[fileSize];
+			byte[] buffer = new byte[700000000];
 			InputStream is = socket.getInputStream();
 			
 			// 4. Recibir un archivo del servidor por medio de una comunicación a través de sockets TCP.
 			// EN EL MOMENTO EN QUE SE RECIBA EL PRIMER PAQUETE SE INICIA LA RECEPCIÓN DEL ARCHIVO
 			int readedBytes = 0;
 			while (readedBytes == 0) {
-				readedBytes = is.read(buffer, 0, BUFFER_SIZE);
+				readedBytes = is.read(buffer, 0, buffer.length);
 			}
 			System.out.println("Inicia la descarga");
 			int currentByte = readedBytes;
@@ -149,7 +156,7 @@ public class Client {
 			long totalTime = System.currentTimeMillis();
 			
 			// LECTURA DE LOS SIGUIENTES PAQUETES
-			readedBytes = is.read(buffer, currentByte, BUFFER_SIZE);
+			readedBytes = is.read(buffer, currentByte, (buffer.length - currentByte));
 			while (readedBytes > -1) {
 				// LECTURA DE UN PAQUETE
 				numPaquetes++;
@@ -159,8 +166,9 @@ public class Client {
 					currentByte += readedBytes;
 				
 				// LECTURA DEL SIGUIENTE PAQUETE
-				readedBytes = is.read(buffer, currentByte, BUFFER_SIZE);
+				readedBytes = is.read(buffer, currentByte, (buffer.length - currentByte));
 			}
+			
 			// SE GUARDA EL TIEMPO TOTAL EN EJECUTARSE
 			totalTime = System.currentTimeMillis() - totalTime;
 			
@@ -192,7 +200,7 @@ public class Client {
 			
 			// REPORTE AL USUARIO
 			System.out.println("Descarga terminada. Tamaño del archivo: " + currentByte);
-			System.out.println("Tiempo total de la descarga: " + totalTime );
+			System.out.println("Tiempo total de la descarga: " + totalTime + "miliseconds" );
 			System.out.println("Número de paquetes leídos: " + numPaquetes);
 			System.out.println("El archivo está completo?: " + (currentByte > fileSize));
 			System.out.println("El archivo está correcto?: " + integridad);
