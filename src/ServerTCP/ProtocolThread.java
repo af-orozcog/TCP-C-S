@@ -114,7 +114,7 @@ public class ProtocolThread extends Thread {
 			
 			// IMPORTANTE EL CLIENTE VA A ENVIAR
 			// UN BYTE SI EL ARCHVIO SI ES INTEGRO
-			// 1 SI ESTÁ BIEN, 0 SI ESTA DAÑADO
+			// 1 SI ESTÁ BIEN, 0 SI ESTA DAÑADO	
 			
 			writer.write("Se enviaron en total " + numPaquetes + " paquetes al cliente " + numCliente + " para un toltal de " + numPaquetes*256 + " bytes");
 			writer.newLine();
