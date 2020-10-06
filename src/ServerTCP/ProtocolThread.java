@@ -17,7 +17,7 @@ import java.security.MessageDigest;
 public class ProtocolThread extends Thread {
 
 	public final static String ARCHIVO_PATH_1 = "data/originales/archivo250";
-	public final static String ARCHIVO_PATH_2 = "data/originales/archivo100";
+	public final static String ARCHIVO_PATH_2 = "data/original/archivo100";
 
 	public final static int MESSAGE_SIZE = 1024; // Tamaño de los paquetes enviados.
 
