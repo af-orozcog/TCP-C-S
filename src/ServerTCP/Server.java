@@ -17,7 +17,7 @@ public class Server {
 	public static String[] respuestasClientes;
 	public final static String NOMBRE_1 = "archivo250";
 	public final static String NOMBRE_2 = "archivo100";
-	public final static String UBICACION_LOG = "data/logs/log_";
+	public final static String UBICACION_LOG = "data/informes/log";
 	public static BufferedWriter writer;
 	
 	public static String DIRECCION = "192.168.137.1";

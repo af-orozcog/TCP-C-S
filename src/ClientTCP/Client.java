@@ -23,8 +23,8 @@ public class Client {
 
 	private static final int BUFFER_SIZE = 1024;
 	
-	private static final String DIR_DESCARGA = "data/descargas/des_";
-	public final static String UBICACION_LOG = "data/logs/log_";
+	private static final String DIR_DESCARGA = "data/downloads/download";
+	public final static String UBICACION_LOG = "data/informes/log";
 	
 	public static String DIRECCION = "192.168.137.1";
 	public static int PUERTO = 49200;
