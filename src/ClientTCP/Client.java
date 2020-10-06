@@ -163,6 +163,10 @@ public class Client {
 			}
 			// SE GUARDA EL TIEMPO TOTAL EN EJECUTARSE
 			totalTime = System.currentTimeMillis() - totalTime;
+			
+			// ALMACENAMIENTO DEL ARCHIVO EN EL LUGAR DE DESCARGA
+			_BOS.write(buffer, 0, currentByte);
+			_BOS.flush();
 
 			// 5. Verificar la integridad del archivo con respeto a la información entregada por el servidor. 
 			// GENERACIÓN DEL HASH
@@ -185,10 +189,6 @@ public class Client {
 			// 7. La aplicación debe reportar si el archivo está completo, correcto y 
 			// el tiempo total de transferencia, para esto genere un log para cada intercambio de
 			// datos entre cliente y servidor.
-			
-			// ALMACENAMIENTO DEL ARCHIVO EN EL LUGAR DE DESCARGA
-			_BOS.write(buffer, 0, currentByte);
-			_BOS.flush();
 			
 			// REPORTE AL USUARIO
 			System.out.println("Descarga terminada. Tamaño del archivo: " + currentByte);
