@@ -42,13 +42,14 @@ public class ProtocolThread extends Thread {
 		try {
 			socket.setSoTimeout(30000);
 		} catch (SocketException e) {
-			// TODO Auto-generated catch block
+			e.printStackTrace();
 			try {
 				writer.write("Hubo un error con el envío");
 				writer.newLine();
 				writer.flush();
 			} catch (Exception ex) {
 				// TODO: handle exception
+				ex.printStackTrace();
 			}
 		}
 

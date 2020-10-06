@@ -83,12 +83,13 @@ public class Client {
 			}
 			
 		}
-
+		
+		// Manejo de excepciones para saber donde ocurrio el error
 		catch (Exception e) {
 			System.err.println(e.getMessage());
 			System.exit(-1);
 		}
-		
+		// cierre de los sockets sin importar como este estructurado el computador
 		finally {
 			console.close();
 			try {
@@ -101,7 +102,7 @@ public class Client {
 	}
 
 	/**
-	 * 
+	 * Metodo para descargar los archivos
 	 * @param id
 	 * @param fileName
 	 * @param socket

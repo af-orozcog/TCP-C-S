@@ -22,7 +22,7 @@ import uniandes.gload.core.Task;
 public class Main extends Task {
 
 	public final static int PUERTO=3400;
-	public final static String SERVIDOR="192.168.0.6";
+	public final static String SERVIDOR="localhost";
 
 	@Override
 	public void fail() {
