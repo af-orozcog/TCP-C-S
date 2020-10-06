@@ -194,7 +194,7 @@ public class Client {
 			System.out.println("Descarga terminada. Tamaño del archivo: " + currentByte);
 			System.out.println("Tiempo total de la descarga: " + totalTime );
 			System.out.println("Número de paquetes leídos: " + numPaquetes);
-			System.out.println("El archivo está completo?: " + (currentByte == fileSize) );
+			System.out.println("El archivo está completo?: " + (currentByte > fileSize));
 			System.out.println("El archivo está correcto?: " + integridad);
 			
 			// REPORTE GURARDADO EN EL LOG	
