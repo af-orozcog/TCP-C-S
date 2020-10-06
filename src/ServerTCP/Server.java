@@ -15,10 +15,13 @@ public class Server {
 
 	public static int NUMERO_CONEXIONES;
 	public static String[] respuestasClientes;
-	public final static String NOMBRE_1 = "video1.mP4";
-	public final static String NOMBRE_2 = "video2.mp4";
+	public final static String NOMBRE_1 = "archivo250";
+	public final static String NOMBRE_2 = "archivo100";
 	public final static String UBICACION_LOG = "data/logs/log_";
 	public static BufferedWriter writer;
+	
+	public static String DIRECCION = "192.168.137.1";
+	public static int PUERTO = 49200;
 
 	public static void main(String[] args) {
 
@@ -34,10 +37,11 @@ public class Server {
 			writer.write("Fecha y hora: " + timeLog);
 			writer.newLine();
 			writer.flush();
-			System.out.println("Escriba el puerto en el que quiere realizar la conexión");
-			int puerto = lectorConsola.nextInt();
+			
+			//System.out.println("Escriba el puerto en el que quiere realizar la conexión");
+			//int puerto = lectorConsola.nextInt();
 
-			socket = new ServerSocket(puerto);
+			socket = new ServerSocket(PUERTO);
 
 			System.out.println("Ingrese el numero de conexiones que se van a manejar: ");
 			int numConexiones = lectorConsola.nextInt();
@@ -48,7 +52,7 @@ public class Server {
 			writer.flush();
 
 			System.out.println(
-					"Ingrese el numero del archivo que quiere enviar: (1) para el de 500 MB o (2) para el de 250 MB");
+					"Ingrese el numero del archivo que quiere enviar: (1) para el de 250 MB o (2) para el de 100 MB");
 			int numeroArchivo = lectorConsola.nextInt();
 			lectorConsola.close();
 			if (numeroArchivo == 1)
@@ -69,12 +73,10 @@ public class Server {
 					DataInputStream dIn = new DataInputStream(socketCli[numClientes].getInputStream());
 					if (numeroArchivo == 1) {
 						dOut.writeByte(1);
-						dOut.writeInt(numClientes);
 						dOut.writeUTF(NOMBRE_1);
 						dOut.flush();
 					} else {
 						dOut.writeByte(1);
-						dOut.writeInt(numClientes);
 						dOut.writeUTF(NOMBRE_2);
 						dOut.flush();
 					}
