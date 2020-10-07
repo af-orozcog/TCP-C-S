@@ -10,8 +10,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
 import java.security.MessageDigest;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Scanner;
 
 public class Client {
@@ -103,10 +101,7 @@ public class Client {
 		DataOutputStream _DOS = new DataOutputStream(socket.getOutputStream());
 		
 		try {
-			
-			// LOG DE LA FECHA, NOMBRE Y TAMAÑO
-			String timeLog = new SimpleDateFormat("HH-mm-ss_dd/MM/yyyy").format(Calendar.getInstance().getTime());
-			
+						
 			// RECIBE EL HASH DEL ARCHIVO
 			String serverHash = _DIS.readUTF();
 			

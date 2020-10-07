@@ -111,10 +111,6 @@ public class Server {
 				} catch (Exception e) {
 					System.out.println("Error de conexion con los clientes");
 				}
-				finally {
-					_DOS.close();
-					_DIS.close();
-				}
 			}
 			System.out.println("Inicio de envio del archivo " + fileName + " a los " + CANT_THREADS + " clientes.");
 			for (int i = 0; i < conections.length; i++) {
