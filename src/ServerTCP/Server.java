@@ -80,13 +80,15 @@ public class Server {
 			
 			// RECEPCIÓN DE UN NUEVO CLIENTE
 			while (idCliente < CANT_THREADS) {
+				DataOutputStream _DOS = null;
+				DataInputStream _DIS = null;
 				try {
 					// LLEGADA DEL NUEVO CLIENTE
 					conections[idCliente] = socket.accept();
 					
 					// CONFIGURACIÓN DE CANALES CON EL CLIENTE
-					DataOutputStream _DOS = new DataOutputStream(conections[idCliente].getOutputStream());
-					DataInputStream _DIS = new DataInputStream(conections[idCliente].getInputStream());
+					_DOS = new DataOutputStream(conections[idCliente].getOutputStream());
+					_DIS = new DataInputStream(conections[idCliente].getInputStream());
 					idCliente++;
 					System.out.println("Conectando con el cliente #: " + idCliente );
 					
@@ -106,8 +108,12 @@ public class Server {
 				} catch (Exception e) {
 					System.out.println("Error de conexion con los clientes");
 				}
+				finally {
+					_DOS.close();
+					_DIS.close();
+				}
 			}
-			System.out.println("Inicio de envió del archivo " + fileName + " a los " + CANT_THREADS + " clientes.");
+			System.out.println("Inicio de envio del archivo " + fileName + " a los " + CANT_THREADS + " clientes.");
 			for (int i = 0; i < conections.length; i++) {
 				writeLog("Inicia envio al cliente #" + (i + 1));
 				ProtocolThread thread = new ProtocolThread(conections[i], fileName, logWriter, (i + 1));
@@ -119,8 +125,8 @@ public class Server {
 			System.exit(1);
 			try {
 				writeLog("Error enviando el archivo: " + e.getMessage());
-			} catch (Exception ex) {
-				// TODO: handle exception
+			} catch (Exception e1) {
+				
 			}
 		}
 	}

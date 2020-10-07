@@ -18,7 +18,7 @@ public class ProtocolThread extends Thread {
 
 	public final static String ARCHIVO_PATH = "data/textos/";
 
-	public final static int MESSAGE_SIZE = 1024; // Tamaño de los paquetes enviados.
+	public final static int PACKAGE = 1024; // Tamaño de los paquetes enviados.
 
 	public String archivo = "";
 
@@ -42,35 +42,28 @@ public class ProtocolThread extends Thread {
 	}
 
 	public void run() {
-
+		sendFile();
 		try {
-			sendFile();
 			socket.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-			try {
-				writeLog("Error en el socket");
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+		} catch (IOException e) {
+			System.out.println("Socket error - IOException: " + e.getMessage());
 		}
 
 	}
 
 	public void sendFile() {
 
-		FileInputStream fis = null;
-		BufferedInputStream bis = null;
+		FileInputStream _FIS = null;
+		BufferedInputStream _BIS = null;
 
-		OutputStream os = null;
+		OutputStream _OUPUT = null;
 
 		try {
-			os = new BufferedOutputStream(socket.getOutputStream());
+			_OUPUT = new BufferedOutputStream(socket.getOutputStream());
 			File myFile = new File(archivo);
 			byte[] myByteArray = new byte[(int) myFile.length()];
-			fis = new FileInputStream(myFile);
-			bis = new BufferedInputStream(fis);
+			_FIS = new FileInputStream(myFile);
+			_BIS = new BufferedInputStream(_FIS);
 
 			MessageDigest shaDigest = MessageDigest.getInstance("SHA-256");
 			String hashEnviar = checkSum(shaDigest, myFile );
@@ -78,7 +71,7 @@ public class ProtocolThread extends Thread {
 			dOut.writeUTF(hashEnviar);
 			dOut.writeInt((int)myFile.length());
 
-			bis.read(myByteArray, 0, myByteArray.length);
+			_BIS.read(myByteArray, 0, myByteArray.length);
 
 			System.out.println("Enviando (" + myByteArray.length + " bytes)");
 
@@ -86,12 +79,12 @@ public class ProtocolThread extends Thread {
 			int numPaquetes = 0;
 			while (bytesEnviados < myByteArray.length) {
 				numPaquetes++;
-				if ((bytesEnviados + MESSAGE_SIZE) < myByteArray.length) {
-					os.write(myByteArray, bytesEnviados, MESSAGE_SIZE);
-					bytesEnviados += MESSAGE_SIZE;
+				if ((bytesEnviados + PACKAGE) < myByteArray.length) {
+					_OUPUT.write(myByteArray, bytesEnviados, PACKAGE);
+					bytesEnviados += PACKAGE;
 				} else {
 					int faltaPorEnviar = myByteArray.length - bytesEnviados;
-					os.write(myByteArray, bytesEnviados, faltaPorEnviar);
+					_OUPUT.write(myByteArray, bytesEnviados, faltaPorEnviar);
 					bytesEnviados += faltaPorEnviar + 1;
 				}
 			}
@@ -104,11 +97,11 @@ public class ProtocolThread extends Thread {
 			logWriter.newLine();
 			logWriter.flush();
 
-			logWriter.write("Cada paquete con un tamaño de " + MESSAGE_SIZE + " bytes");
+			logWriter.write("Cada paquete con un tamaño de " + PACKAGE + " bytes");
 			logWriter.newLine();
 			logWriter.flush();
 
-			os.flush();
+			_OUPUT.flush();
 			System.out.println("Archivo enviado.");
 			logWriter.write("Archivo enviado exitosamente al cliente " + clientId);
 			logWriter.newLine();
