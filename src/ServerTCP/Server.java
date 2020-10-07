@@ -13,6 +13,7 @@ import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Scanner;
+import ServerTCP.ProtocolThread;
 
 public class Server {
 
