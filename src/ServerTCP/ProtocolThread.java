@@ -142,12 +142,7 @@ public class ProtocolThread extends Thread {
 			}
 		}
 		finally {
-			_DIS.close();
-			_OUPUT.close();
-			_DOS.close();
-			_BIS.close();
-			_FIS.close();
-
+			logWriter.close();
 		}
 
 	}
