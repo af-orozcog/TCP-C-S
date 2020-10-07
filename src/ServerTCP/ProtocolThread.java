@@ -17,22 +17,26 @@ import java.security.MessageDigest;
 public class ProtocolThread extends Thread {
 
 	public final static String ARCHIVO_PATH = "data/textos/";
-
-	public final static int PACKAGE = 1024; // Tamanio de los paquetes enviados.
-
-	public String archivo = "";
+	public final static int PACKAGE = 1024;
 
 	private Socket socket = null;
-
 	private static BufferedWriter logWriter;
 
+	public String fileName = "";
 	private int clientId;
 
+	/**
+	 * Genera el thread de comunicacion con el cliente respectivo
+	 * @param pSocket socket de comunicacion
+	 * @param nombreArchivo nombre del archivo a enviar
+	 * @param logWriter log de la prueba actual
+	 * @param id id del cliente
+	 */
 	public ProtocolThread(Socket pSocket, String nombreArchivo, BufferedWriter logWriter, int id) {
 		socket = pSocket;
 		ProtocolThread.logWriter = logWriter;
 		clientId = id;
-		archivo = ARCHIVO_PATH + nombreArchivo;
+		fileName = ARCHIVO_PATH + nombreArchivo;
 		try {
 			socket.setSoTimeout(30000);
 		} catch (SocketException e) {
@@ -41,8 +45,20 @@ public class ProtocolThread extends Thread {
 
 	}
 
+	/**
+	 * 
+	 */
 	public void run() {
-		sendFile();
+		try {
+			sendFile();
+		} catch (IOException e1) {
+			System.out.println("Error con el envio del archivo" + e1.getMessage());
+			try {
+				writeLog("Error con el envio del archivo al cliente " + clientId + ": " + e1.getMessage());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		try {
 			socket.close();
 		} catch (IOException e) {
@@ -51,76 +67,91 @@ public class ProtocolThread extends Thread {
 
 	}
 
-	public void sendFile() {
+	/**
+	 * @throws IOException 
+	 * 
+	 */
+	public void sendFile() throws IOException {
 
 		FileInputStream _FIS = null;
 		BufferedInputStream _BIS = null;
-
+		DataOutputStream _DOS = null;
 		OutputStream _OUPUT = null;
+		DataInputStream _DIS = null;
 
 		try {
-			_OUPUT = new BufferedOutputStream(socket.getOutputStream());
-			File myFile = new File(archivo);
-			byte[] myByteArray = new byte[(int) myFile.length()];
-			_FIS = new FileInputStream(myFile);
+			// BUSCA EL ARCHIVO A ENVIAR Y SE GENERA UN CANAL PARA LEER EL MISMO
+			File file = new File(fileName);
+			_FIS = new FileInputStream(file);
 			_BIS = new BufferedInputStream(_FIS);
 
+			// SE ALMACENA EL ARCHIVO EN BUFFER
+			byte[] buffer = new byte[(int) file.length()];
+			_BIS.read(buffer, 0, buffer.length);
+
+			// SE GENERA EL HASH DEL ARCHIVO
 			MessageDigest shaDigest = MessageDigest.getInstance("SHA-256");
-			String hashEnviar = checkSum(shaDigest, myFile );
-			DataOutputStream dOut = new DataOutputStream(socket.getOutputStream());
-			dOut.writeUTF(hashEnviar);
-			dOut.writeInt((int)myFile.length());
+			String hashEnviar = checkSum(shaDigest, file );
 
-			_BIS.read(myByteArray, 0, myByteArray.length);
+			// SE CREA UN CANAL DE COMUNICACION CON EL CLIENTE
+			_DOS = new DataOutputStream(socket.getOutputStream());
 
-			System.out.println("Enviando (" + myByteArray.length + " bytes)");
+			// SE ENVIA EL HASH DEL ARCHIVO
+			_DOS.writeUTF(hashEnviar);
 
-			int bytesEnviados = 0;
-			int numPaquetes = 0;
-			while (bytesEnviados < myByteArray.length) {
-				numPaquetes++;
-				if ((bytesEnviados + PACKAGE) < myByteArray.length) {
-					_OUPUT.write(myByteArray, bytesEnviados, PACKAGE);
-					bytesEnviados += PACKAGE;
-				} else {
-					int faltaPorEnviar = myByteArray.length - bytesEnviados;
-					_OUPUT.write(myByteArray, bytesEnviados, faltaPorEnviar);
-					bytesEnviados += faltaPorEnviar + 1;
+			// SE ENVIA EL TAMANIO DEL ARCHIVO
+			_DOS.writeInt((int)file.length());
+
+			// SE INICIA EL CANAL DE ENVIO
+			System.out.println("Enviando "+ file.getName() + " de tamanio: " + buffer.length + " bytes al usuario " + clientId);
+			_OUPUT = new BufferedOutputStream(socket.getOutputStream());
+
+			// VARIABLE PARA MEDIR EL TIEMPO DE DESCARGA
+			long totalTime = System.currentTimeMillis();
+
+			int cantPaquetes = 0;
+			// ENVIO DEL ARCHIVO A TRAVES DE PAQUETES
+			for(int i = 0; i <= file.length() - (file.length() % PACKAGE) ; i+=PACKAGE ) {
+				if(i == file.length() - (file.length() % PACKAGE)) {
+					_OUPUT.write(buffer, i, (int)file.length() % PACKAGE);
 				}
+				else {
+					_OUPUT.write(buffer, i, PACKAGE);
+				}
+				cantPaquetes++;
 			}
-			
-			// IMPORTANTE EL CLIENTE VA A ENVIAR
-			// UN BYTE SI EL ARCHVIO SI ES INTEGRO
-			// 1 SI ESTA BIEN, 0 SI ESTA DANADO	
-			
-			logWriter.write("Se enviaron en total " + numPaquetes + " paquetes al cliente " + clientId + " para un toltal de " + numPaquetes*256 + " bytes");
-			logWriter.newLine();
-			logWriter.flush();
+			totalTime = System.currentTimeMillis() - totalTime;
 
-			logWriter.write("Cada paquete con un tamanio de " + PACKAGE + " bytes");
-			logWriter.newLine();
-			logWriter.flush();
+			// EL CLIENTE NOTIFICA QUE LA RECEPCION DEL ARCHIVO
+			_DIS = new DataInputStream(socket.getInputStream());
+			if(_DIS.readByte() == 1) {
+				writeLog("La entrega del archivo al cliente "+ clientId +" fue exitosa");
+				writeLog("Tiempo de transferencia del cliente " + clientId +": " + totalTime + " miliseconds");
+				writeLog("Cliente#"+clientId+" - paquetes enviados: " + cantPaquetes + " - paquetes recibidos: " + _DIS.readUTF());
+			}
+			else {
+				writeLog("La entrega del archivo al cliente " + clientId +"no fue exitosa");
+			}
 
-			_OUPUT.flush();
-			System.out.println("Archivo enviado.");
-			logWriter.write("Archivo enviado exitosamente al cliente " + clientId);
-			logWriter.newLine();
-			logWriter.flush();
-
-			logWriter.close();
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			try {
-				logWriter.write("Hubo un error con el envio");
-				logWriter.newLine();
-				logWriter.flush();
-			} catch (Exception ex) {
-				// TODO: handle exception
+				writeLog("Error de comunicacion con el cliente");
+			} catch (Exception e1) {
+
 			}
+		}
+		finally {
+			_DIS.close();
+			_OUPUT.close();
+			_DOS.close();
+			_BIS.close();
+			_FIS.close();
+
 		}
 
 	}
-	
+
 	/**
 	 * Escribe el mensaje en el log writer
 	 * @param log Mensaje a escribir
@@ -131,43 +162,43 @@ public class ProtocolThread extends Thread {
 		logWriter.newLine();
 		logWriter.flush();
 	}
-	
+
 	/**
-	 * Checksum hash example from from: https://howtodoinjava.com/java/io/sha-md5-file-checksum-hash/
-	 * @param digest
-	 * @param file
-	 * @return
+	 * Calcula el hash del archivo usando un digest
+	 * @param digest Digest a utilizar
+	 * @param file Archivo
+	 * @return El hash del archivo
 	 * @throws IOException
 	 */
 	private static String checkSum(MessageDigest digest, File file) throws IOException
 	{
-	    //Get file input stream for reading the file content
-	    FileInputStream fis = new FileInputStream(file);
-	     
-	    //Create byte array to read data in chunks
-	    byte[] byteArray = new byte[1024];
-	    int bytesCount = 0; 
-	      
-	    //Read file data and update in message digest
-	    while ((bytesCount = fis.read(byteArray)) != -1) {
-	        digest.update(byteArray, 0, bytesCount);
-	    };
-	     
-	    //close the stream; We don't need it now.
-	    fis.close();
-	     
-	    //Get the hash's bytes
-	    byte[] bytes = digest.digest();
-	     
-	    //This bytes[] has bytes in decimal format;
-	    //Convert it to hexadecimal format
-	    StringBuilder sb = new StringBuilder();
-	    for(int i=0; i< bytes.length ;i++)
-	    {
-	        sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-	    }
-	     
-	    //return complete hash
-	   return sb.toString();
+		//Get file input stream for reading the file content
+		FileInputStream fis = new FileInputStream(file);
+
+		//Create byte array to read data in chunks
+		byte[] byteArray = new byte[1024];
+		int bytesCount = 0; 
+
+		//Read file data and update in message digest
+		while ((bytesCount = fis.read(byteArray)) != -1) {
+			digest.update(byteArray, 0, bytesCount);
+		};
+
+		//close the stream; We don't need it now.
+		fis.close();
+
+		//Get the hash's bytes
+		byte[] bytes = digest.digest();
+
+		//This bytes[] has bytes in decimal format;
+		//Convert it to hexadecimal format
+		StringBuilder sb = new StringBuilder();
+		for(int i=0; i< bytes.length ;i++)
+		{
+			sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+		}
+
+		//return complete hash
+		return sb.toString();
 	}
 }

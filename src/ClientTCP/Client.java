@@ -1,13 +1,11 @@
 package ClientTCP;
 
 import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
@@ -39,15 +37,12 @@ public class Client {
 		Socket socket = null;
 
 		try {
-			// 2. Conectarse al servidor TCP y mostrar que se ha realizado dicha conexión. 
-			// 	  Mostrar el estado de la conexión.
-
 			//LECTURA DE IP Y PUERTO PARA REALIZAR LA CONEXIÓN
-			//System.out.println("Escriba la dirección ip del servidor al que se desea conectar:");
-			//String direccion = console.next();
+			System.out.println("Escriba la dirección ip del servidor al que se desea conectar:");
+			DIRECCION = console.next();
 
-			//System.out.println("Escriba el puerto del servidor:");
-			//int puerto = console.nextInt();
+			System.out.println("Escriba el puerto del servidor:");
+			PUERTO = console.nextInt();
 						
 			// CONEXIÓN AL SOCKET
 			System.out.println("Conectando al servidor...");
@@ -58,9 +53,7 @@ public class Client {
 			DataInputStream _DIS = new DataInputStream(socket.getInputStream());
 			DataOutputStream _DOS = new DataOutputStream(socket.getOutputStream());
 						
-			if (_DIS.readByte() == 1) {
-				// 3. Enviar notificación de preparado para recibir datos de parte del servidor.
-				
+			if (_DIS.readByte() == 1) {				
 				// RECIBE DEL SERVIDOR EL ID Y EL NOMBRE DEL ARCHIVO
 				String fileName = _DIS.readUTF();
 				int id = _DIS.readByte();
@@ -124,12 +117,11 @@ public class Client {
 			// INICIALIZACION DEL BUFFER Y EL INPUTSTREAM PARA RECIBIR EL ARCHIVO
 			byte[] buffer = new byte[700000000];
 			InputStream is = socket.getInputStream();
-			
-			// 4. Recibir un archivo del servidor por medio de una comunicación a través de sockets TCP.
+						
 			// RECEPCIÓN DEL PRIMER PAQUETE
 			int readedBytes = is.read(buffer, 0, buffer.length);
 			int currentByte = readedBytes;
-			int numPaquetes = 1;
+			int cantPaquetes = 1;
 
 			System.out.println("Inicia la descarga del archivo");
 
@@ -140,7 +132,7 @@ public class Client {
 			readedBytes = is.read(buffer, currentByte, (buffer.length - currentByte));
 			while (readedBytes > -1) {
 				// LECTURA DE UN PAQUETE
-				numPaquetes++;
+				cantPaquetes++;
 		
 				// ACTUALIZACIÓN DEL BYTE ACTUAL DEL MENSAJE
 				if (readedBytes >= 0)
@@ -157,7 +149,6 @@ public class Client {
 			_BOS.write(buffer, 0, currentByte);
 			_BOS.flush();
 
-			// 5. Verificar la integridad del archivo con respeto a la información entregada por el servidor. 
 			// GENERACIÓN DEL HASH
 			MessageDigest shaDigest = MessageDigest.getInstance("SHA-256");
 			String generatedHash = hash(shaDigest, ( new File(DOWNLOADS_PATH + fileName) ) );
@@ -165,28 +156,23 @@ public class Client {
 			// VERIFICACIÓN DE INTEGRIDAD
 			boolean integridad = serverHash.equals(generatedHash);
 			
-			// 6. Enviar notificación de recepción del archivo al servidor.
 			if(integridad) {
 				_DOS.writeByte(1);
+				_DOS.writeUTF(cantPaquetes + "");
 				System.out.println("Verificada la integridad del archivo");
 			}
 			else {
 				_DOS.writeByte(0);
 				System.out.println("Integridad del archivo comprometida");
 			}
-
-			// 7. La aplicación debe reportar si el archivo está completo, correcto y 
-			// el tiempo total de transferencia, para esto genere un log para cada intercambio de
-			// datos entre cliente y servidor.
 			
 			// REPORTE AL USUARIO
 			System.out.println("Descarga terminada. Tamanio del archivo: " + currentByte);
 			System.out.println("Tiempo total de la descarga: " + totalTime + "miliseconds" );
-			System.out.println("Número de paquetes leídos: " + numPaquetes);
+			System.out.println("Número de paquetes leídos: " + cantPaquetes);
 			System.out.println("El archivo está completo?: " + (currentByte == fileSize));
 			System.out.println("El archivo está correcto?: " + integridad);
 			
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.out.println(e.getMessage());

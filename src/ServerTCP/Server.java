@@ -41,14 +41,16 @@ public class Server {
 			File logFile = new File(LOG_PATH + time + ".txt");
 			logWriter = new BufferedWriter(new FileWriter(logFile));
 			
-			//System.out.println("Escriba el puerto en el que quiere realizar la conexion");
-			//PUERTO = lectorConsola.nextInt();
-
+			System.out.println("Escriba el puerto en el que quiere realizar la conexion");
+			PUERTO = console.nextInt();
+			
 			// CREACION DEL SOCKET
 			socket = new ServerSocket(PUERTO);
 
-			System.out.println("Ingrese numero de conexiones: ");
+			System.out.println("Ingrese numero de conexiones: (MAX 25)");
 			CANT_THREADS = console.nextInt();
+			if(CANT_THREADS > 25)
+				CANT_THREADS = 25;
 
 			writeLog("Numero de conexiones: " + CANT_THREADS);
 
