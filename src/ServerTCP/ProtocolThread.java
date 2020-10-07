@@ -110,6 +110,7 @@ public class ProtocolThread extends Thread {
 			long totalTime = System.currentTimeMillis();
 			int sendedBytes = 0;
 			int cantPaquetes = 0;
+			
 			// ENVIO DEL ARCHIVO A TRAVES DE PAQUETES
 			while (sendedBytes < buffer.length) {
 				cantPaquetes++;
