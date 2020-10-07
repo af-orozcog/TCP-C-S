@@ -1,7 +1,6 @@
 package ClientTCP;
 
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -11,8 +10,6 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
@@ -23,8 +20,8 @@ public class Client {
 
 	private static final int BUFFER_SIZE = 1024;
 	
-	private static final String DIR_DESCARGA = "data/downloads/download";
-	public final static String UBICACION_LOG = "data/informes/log";
+	private static final String DIR_DESCARGA = "data/downloads/download-";
+	public final static String UBICACION_LOG = "data/informes/log-";
 	
 	public static String DIRECCION = "192.168.137.1";
 	public static int PUERTO = 49200;
@@ -47,15 +44,13 @@ public class Client {
 
 		try {
 			// INCIALIZACIÓN DEL LOG SEGÚN FECHA
-			String time = new SimpleDateFormat("dd_MM_yyyy_HH_mm_ss").format(Calendar.getInstance().getTime());
+			String time = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(Calendar.getInstance().getTime());
 			File logFile = new File(UBICACION_LOG + time + ".txt");
 			logWriter = new BufferedWriter(new FileWriter(logFile));
 			
 			// 2. Conectarse al servidor TCP y mostrar que se ha realizado dicha conexión. 
 			// 	  Mostrar el estado de la conexión.
 
-			// CREACIÓN DEL SOCKET 
-			
 			//LECTURA DE IP Y PUERTO PARA REALIZAR LA CONEXIÓN
 			//System.out.println("Escriba la dirección ip del servidor al que se desea conectar:");
 			//String direccion = console.next();
@@ -68,21 +63,19 @@ public class Client {
 			System.out.println("ESTADO DE CONEXIÓN: " + !socket.isClosed() + " Esperando nombre del archivo...");
 
 			// CANAL DE ENTRADA Y SALIDA CON EL SERVIDOR
-			DataInputStream inputStream = new DataInputStream(socket.getInputStream());
-			DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
+			DataInputStream _DIS = new DataInputStream(socket.getInputStream());
+			DataOutputStream _DOS = new DataOutputStream(socket.getOutputStream());
 						
-			if (inputStream.readByte() == 1) {
+			if (_DIS.readByte() == 1) {
 				// 3. Enviar notificación de preparado para recibir datos de parte del servidor.
 				
-				String fileName = inputStream.readUTF();
+				// RECIBE DEL SERVIDOR EL ID Y EL NOMBRE DEL ARCHIVO
+				String fileName = _DIS.readUTF();
+				int id = _DIS.readByte();
+				System.out.println("Nombre del archivo: " + fileName + " - ID del archivo: " + id);
 
 				// INFORMA AL SERVIDOR QUE SE VA A INICIAR LA DESCARGA
-				outputStream.writeByte(2);
-				
-				// RECIBE DEL SERVIDOR EL ID Y EL NOMBRE DEL ARCHIVO
-				int id = inputStream.readByte();
-				System.out.println("Nombre del archivo: " + fileName + " - ID del archivo: " + id);
-				
+				_DOS.writeUTF("OK");
 				fileDownload(id, fileName, socket);
 			}
 			else {
@@ -143,14 +136,12 @@ public class Client {
 			InputStream is = socket.getInputStream();
 			
 			// 4. Recibir un archivo del servidor por medio de una comunicación a través de sockets TCP.
-			// EN EL MOMENTO EN QUE SE RECIBA EL PRIMER PAQUETE SE INICIA LA RECEPCIÓN DEL ARCHIVO
-			int readedBytes = 0;
-			while (readedBytes == 0) {
-				readedBytes = is.read(buffer, 0, buffer.length);
-			}
-			System.out.println("Inicia la descarga");
+			// RECEPCIÓN DEL PRIMER PAQUETE
+			int readedBytes = is.read(buffer, 0, buffer.length);
 			int currentByte = readedBytes;
 			int numPaquetes = 1;
+
+			System.out.println("Inicia la descarga del archivo");
 
 			// VARIABLE PARA MEDIR EL TIEMPO DE DESCARGA
 			long totalTime = System.currentTimeMillis();
@@ -179,7 +170,7 @@ public class Client {
 			// 5. Verificar la integridad del archivo con respeto a la información entregada por el servidor. 
 			// GENERACIÓN DEL HASH
 			MessageDigest shaDigest = MessageDigest.getInstance("SHA-256");
-			String generatedHash = checkSum(shaDigest, ( new File(DIR_DESCARGA + fileName) ) );
+			String generatedHash = hash(shaDigest, ( new File(DIR_DESCARGA + fileName) ) );
 			
 			// VERIFICACIÓN DE INTEGRIDAD
 			boolean integridad = serverHash.equals(generatedHash);
@@ -225,6 +216,11 @@ public class Client {
 	}
 
 	
+	/**
+	 * Escribe el mensaje en el log writer
+	 * @param message Mensaje a escribir
+	 * @throws IOException
+	 */
 	private static void writeLog(String message) throws IOException {
 		logWriter.write(message);
 		logWriter.newLine();
@@ -233,13 +229,13 @@ public class Client {
 	
 	
 	/**
-	 * Checksum hash example from from: https://howtodoinjava.com/java/io/sha-md5-file-checksum-hash/
-	 * @param digest
-	 * @param file
-	 * @return
+	 * Calcula el hash del archivo usando un digest
+	 * @param digest Digest a utilizar
+	 * @param file Archivo
+	 * @return El hash del archivo
 	 * @throws IOException
 	 */
-	private static String checkSum(MessageDigest digest, File file) throws IOException
+	private static String hash(MessageDigest digest, File file) throws IOException
 	{
 	    //Get file input stream for reading the file content
 	    FileInputStream fis = new FileInputStream(file);

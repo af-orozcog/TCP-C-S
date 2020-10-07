@@ -16,8 +16,7 @@ import java.security.MessageDigest;
 
 public class ProtocolThread extends Thread {
 
-	public final static String ARCHIVO_PATH_1 = "data/originales/archivo250";
-	public final static String ARCHIVO_PATH_2 = "data/originales/archivo100";
+	public final static String ARCHIVO_PATH = "data/textos/";
 
 	public final static int MESSAGE_SIZE = 1024; // Tamaño de los paquetes enviados.
 
@@ -27,18 +26,15 @@ public class ProtocolThread extends Thread {
 
 	private boolean conexion;
 
-	private BufferedWriter writer;
+	private BufferedWriter logWriter;
 
 	private int numCliente;
 
-	public ProtocolThread(Socket pSocket, int arch, BufferedWriter writer, int numCliente) {
+	public ProtocolThread(Socket pSocket, String nombreArchivo, BufferedWriter writer, int numCliente) {
 		socket = pSocket;
-		this.writer = writer;
+		this.logWriter = writer;
 		this.numCliente = numCliente;
-		if (arch == 1) {
-			archivo = ARCHIVO_PATH_1;
-		} else
-			archivo = ARCHIVO_PATH_2;
+		archivo = ARCHIVO_PATH + nombreArchivo;
 		try {
 			socket.setSoTimeout(30000);
 		} catch (SocketException e) {
@@ -65,9 +61,9 @@ public class ProtocolThread extends Thread {
 		} catch (Exception e) {
 			e.printStackTrace();
 			try {
-				writer.write("Hubo un error con el envío");
-				writer.newLine();
-				writer.flush();
+				logWriter.write("Hubo un error con el envío");
+				logWriter.newLine();
+				logWriter.flush();
 			} catch (Exception ex) {
 				// TODO: handle exception
 			}
@@ -117,28 +113,28 @@ public class ProtocolThread extends Thread {
 			// UN BYTE SI EL ARCHVIO SI ES INTEGRO
 			// 1 SI ESTÁ BIEN, 0 SI ESTA DAÑADO	
 			
-			writer.write("Se enviaron en total " + numPaquetes + " paquetes al cliente " + numCliente + " para un toltal de " + numPaquetes*256 + " bytes");
-			writer.newLine();
-			writer.flush();
+			logWriter.write("Se enviaron en total " + numPaquetes + " paquetes al cliente " + numCliente + " para un toltal de " + numPaquetes*256 + " bytes");
+			logWriter.newLine();
+			logWriter.flush();
 
-			writer.write("Cada paquete con un tamaño de " + MESSAGE_SIZE + " bytes");
-			writer.newLine();
-			writer.flush();
+			logWriter.write("Cada paquete con un tamaño de " + MESSAGE_SIZE + " bytes");
+			logWriter.newLine();
+			logWriter.flush();
 
 			os.flush();
 			System.out.println("Archivo enviado.");
-			writer.write("Archivo enviado exitosamente al cliente " + numCliente);
-			writer.newLine();
-			writer.flush();
+			logWriter.write("Archivo enviado exitosamente al cliente " + numCliente);
+			logWriter.newLine();
+			logWriter.flush();
 
-			writer.close();
+			logWriter.close();
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			conexion = false;
 			try {
-				writer.write("Hubo un error con el envío");
-				writer.newLine();
-				writer.flush();
+				logWriter.write("Hubo un error con el envío");
+				logWriter.newLine();
+				logWriter.flush();
 			} catch (Exception ex) {
 				// TODO: handle exception
 			}

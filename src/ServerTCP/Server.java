@@ -4,98 +4,113 @@ import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Scanner;
 
 public class Server {
 
-	public static int NUMERO_CONEXIONES;
+	public static int CANT_THREADS;
 	public static String[] respuestasClientes;
-	public final static String NOMBRE_1 = "archivo250";
-	public final static String NOMBRE_2 = "archivo100";
-	public final static String UBICACION_LOG = "data/informes/log";
-	public static BufferedWriter writer;
+	public final static String TEXTOS_PATH = "data/textos/";
+	public final static String NOMBRE_1 = "texto1.txt";
+	public final static String NOMBRE_2 = "texto2.txt";
+	public final static String UBICACION_LOG = "data/informes/log-";
+	public static BufferedWriter logWriter;
 	
-	public static String DIRECCION = "192.168.137.1";
 	public static int PUERTO = 49200;
 
 	public static void main(String[] args) {
-
-		Scanner lectorConsola = new Scanner(System.in);
-		ServerSocket socket;
-
-		// Declaramos un bloque try y catch para controlar la ejecución del subprograma
+		System.out.println("Servidor TCP: ");
+		
+		// HERRAMIENTA PARA LECTURA DE LA CONFIGURACIÓN DE LA CONEXIÓN
+		Scanner console = new Scanner(System.in);
+		
+		// PREPARACIÓN DEL SOCKET
+		ServerSocket socket = null;
+		
 		try {
-			String time = new SimpleDateFormat("dd_MM_yyyy_HH_mm_ss").format(Calendar.getInstance().getTime());
+			// INCIALIZACIÓN DEL LOG SEGÚN FECHA
+			String time = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(Calendar.getInstance().getTime());
 			File logFile = new File(UBICACION_LOG + time + ".txt");
-			writer = new BufferedWriter(new FileWriter(logFile));
-			String timeLog = new SimpleDateFormat("dd/MM/yyyy HH:mm").format(Calendar.getInstance().getTime());
-			writer.write("Fecha y hora: " + timeLog);
-			writer.newLine();
-			writer.flush();
+			logWriter = new BufferedWriter(new FileWriter(logFile));
 			
 			//System.out.println("Escriba el puerto en el que quiere realizar la conexión");
-			//int puerto = lectorConsola.nextInt();
+			//PUERTO = lectorConsola.nextInt();
 
+			// CREACIÓN DEL SOCKET
 			socket = new ServerSocket(PUERTO);
 
-			System.out.println("Ingrese el numero de conexiones que se van a manejar: ");
-			int numConexiones = lectorConsola.nextInt();
-			NUMERO_CONEXIONES = numConexiones;
+			System.out.println("Ingrese número de conexiones: ");
+			CANT_THREADS = console.nextInt();
 
-			writer.write("Conexiones para la prueba: " + numConexiones);
-			writer.newLine();
-			writer.flush();
+			writeLog("Número de conexiones: " + CANT_THREADS);
 
-			System.out.println(
-					"Ingrese el numero del archivo que quiere enviar: (1) para el de 250 MB o (2) para el de 100 MB");
-			int numeroArchivo = lectorConsola.nextInt();
-			lectorConsola.close();
-			if (numeroArchivo == 1)
-				writer.write("Se va a realizar el envío de un archivo llamado " + NOMBRE_1);
-			else
-				writer.write("Se va a realizar el envío de un archivo llamado " + NOMBRE_2);
-			writer.newLine();
-			writer.flush();
-
-
-			Socket[] socketCli = new Socket[numConexiones];
-			int numClientes = 0;
-			System.out.println("Esperando clientes");
-			while (numClientes < NUMERO_CONEXIONES) {
+			String timeLog = new SimpleDateFormat("HH-mm-ss_dd/MM/yyyy").format(Calendar.getInstance().getTime());
+			writeLog("Hora_Fecha: " + timeLog);
+			
+			// ELECCIÓN DEL ARCHIVO
+			System.out.println("Que archivo se va a enviar? (Escribir \"1\" para el de 250 MiB o \"2\" para el de 100 MiB)");
+			
+			String fileName;
+			switch (console.nextInt()) {
+			case 1:
+				fileName = NOMBRE_1;
+				break;
+			case 2:
+				fileName = NOMBRE_2;
+				break;
+			default:
+				System.out.println("Error: Número de archivo inválido");
+				return;
+			}
+			writeLog("Nombre del archivo: " + fileName + ".");
+			writeLog("Tamaño del archivo: " + new File(TEXTOS_PATH + fileName) + " bytes.");
+			console.close();
+			
+			// INICIALIZACIÓN DE TODOS LOS SOCKETS
+			Socket[] conections = new Socket[CANT_THREADS];
+			System.out.println("Esperando conexiones...");
+			int idCliente = 0;
+			
+			// RECEPCIÓN DE UN NUEVO CLIENTE
+			while (idCliente < CANT_THREADS) {
 				try {
-					socketCli[numClientes] = socket.accept();
-					DataOutputStream dOut = new DataOutputStream(socketCli[numClientes].getOutputStream());
-					DataInputStream dIn = new DataInputStream(socketCli[numClientes].getInputStream());
-					if (numeroArchivo == 1) {
-						dOut.writeByte(1);
-						dOut.writeUTF(NOMBRE_1);
-						dOut.flush();
-					} else {
-						dOut.writeByte(1);
-						dOut.writeUTF(NOMBRE_2);
-						dOut.flush();
+					// LLEGADA DEL NUEVO CLIENTE
+					conections[idCliente] = socket.accept();
+					
+					// CONFIGURACIÓN DE CANALES CON EL CLIENTE
+					DataOutputStream _DOS = new DataOutputStream(conections[idCliente].getOutputStream());
+					DataInputStream _DIS = new DataInputStream(conections[idCliente].getInputStream());
+					System.out.println("Conectando con el cliente #: " + (++idCliente) );
+					
+					// ENVÍA SU NOMBRE Y ID
+					_DOS.writeByte(1);
+					_DOS.writeUTF(fileName);
+					_DOS.flush();
+					
+					_DOS.write(idCliente);
+					
+					// CONFIRMACIÓN DE LA CONEXIÓN
+					if(_DIS.readUTF().contentEquals("OK")) {
+						System.out.println("Cliente #"+ idCliente + " recibió el nombre del archivo y su ID");
+						writeLog("Conexión exitosa con el cliente #" + idCliente);
 					}
-					numClientes++;
-					if (dIn.readByte() == 2)
-						System.out
-								.println("Llegó el cliente " + numClientes + " y está esperando el envío del archivo");
-					dOut.write(numClientes);
-					writer.write("Cliente conectado número " + numClientes);
-					writer.newLine();
-					writer.flush();
+					
 				} catch (Exception e) {
-					// TODO: handle exception
-					System.out.println("Hubo un problema con algún cliente");
+					System.out.println("Error de conexión con los clientes");
 				}
 			}
-			System.out.println("Se comenzará el envio de archivos a los clientes");
-			for (int i = 0; i < socketCli.length; i++) {
-				ProtocolThread thread = new ProtocolThread(socketCli[i], numeroArchivo, writer, (i + 1));
+			System.out.println("Inicio de envió del archivo " + fileName + " a los " + CANT_THREADS + " clientes.");
+			for (int i = 0; i < conections.length; i++) {
+				writeLog("Inicia envió al cliente #" + (i + 1));
+				ProtocolThread thread = new ProtocolThread(conections[i], fileName, logWriter, (i + 1));
 				thread.start();
 			}
 		}
@@ -103,12 +118,23 @@ public class Server {
 			System.err.println(e.getMessage());
 			System.exit(1);
 			try {
-				writer.write("Hubo un error con el envío");
-				writer.newLine();
-				writer.flush();
+				logWriter.write("Hubo un error con el envío");
+				logWriter.newLine();
+				logWriter.flush();
 			} catch (Exception ex) {
 				// TODO: handle exception
 			}
 		}
+	}
+	
+	/**
+	 * Escribe el mensaje en el log writer
+	 * @param message Mensaje a escribir
+	 * @throws IOException
+	 */
+	private static void writeLog(String message) throws IOException {
+		logWriter.write(message);
+		logWriter.newLine();
+		logWriter.flush();
 	}
 }
