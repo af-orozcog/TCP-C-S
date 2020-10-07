@@ -140,7 +140,6 @@ public class ProtocolThread extends Thread {
 			try {
 				writeLog("Error de comunicacion con el cliente");
 			} catch (Exception e1) {
-				e1.printStackTrace();
 			}
 		}
 		finally {
