@@ -18,7 +18,7 @@ public class ProtocolThread extends Thread {
 
 	public final static String ARCHIVO_PATH = "data/textos/";
 
-	public final static int PACKAGE = 1024; // Tamaño de los paquetes enviados.
+	public final static int PACKAGE = 1024; // Tamanio de los paquetes enviados.
 
 	public String archivo = "";
 
@@ -91,13 +91,13 @@ public class ProtocolThread extends Thread {
 			
 			// IMPORTANTE EL CLIENTE VA A ENVIAR
 			// UN BYTE SI EL ARCHVIO SI ES INTEGRO
-			// 1 SI ESTÁ BIEN, 0 SI ESTA DAÑADO	
+			// 1 SI ESTA BIEN, 0 SI ESTA DANADO	
 			
 			logWriter.write("Se enviaron en total " + numPaquetes + " paquetes al cliente " + clientId + " para un toltal de " + numPaquetes*256 + " bytes");
 			logWriter.newLine();
 			logWriter.flush();
 
-			logWriter.write("Cada paquete con un tamaño de " + PACKAGE + " bytes");
+			logWriter.write("Cada paquete con un tamanio de " + PACKAGE + " bytes");
 			logWriter.newLine();
 			logWriter.flush();
 
@@ -111,7 +111,7 @@ public class ProtocolThread extends Thread {
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			try {
-				logWriter.write("Hubo un error con el envío");
+				logWriter.write("Hubo un error con el envio");
 				logWriter.newLine();
 				logWriter.flush();
 			} catch (Exception ex) {
