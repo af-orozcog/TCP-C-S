@@ -28,14 +28,14 @@ public class Server {
 	public static void main(String[] args) {
 		System.out.println("Servidor TCP: ");
 		
-		// HERRAMIENTA PARA LECTURA DE LA CONFIGURACION DE LA CONEXIÓN
+		// HERRAMIENTA PARA LECTURA DE LA CONFIGURACION DE LA CONEXION
 		Scanner console = new Scanner(System.in);
 		
 		// PREPARACION DEL SOCKET
 		ServerSocket socket = null;
 		
 		try {
-			// INCIALIZACION DEL LOG SEGÚN FECHA
+			// INCIALIZACION DEL LOG SEGUN FECHA
 			String time = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(Calendar.getInstance().getTime());
 			File logFile = new File(LOG_PATH + time + ".txt");
 			logWriter = new BufferedWriter(new FileWriter(logFile));
@@ -49,7 +49,7 @@ public class Server {
 			System.out.println("Ingrese numero de conexiones: ");
 			CANT_THREADS = console.nextInt();
 
-			writeLog("Número de conexiones: " + CANT_THREADS);
+			writeLog("Numero de conexiones: " + CANT_THREADS);
 
 			String timeLog = new SimpleDateFormat("HH-mm-ss_dd/MM/yyyy").format(Calendar.getInstance().getTime());
 			writeLog("Hora_Fecha: " + timeLog);
