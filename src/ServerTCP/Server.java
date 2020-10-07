@@ -17,11 +17,10 @@ import java.util.Scanner;
 public class Server {
 
 	public static int CANT_THREADS;
-	public static String[] respuestasClientes;
-	public final static String TEXTOS_PATH = "data/textos/";
+	public final static String TEXT_PATH = "data/textos/";
 	public final static String NOMBRE_1 = "texto1.txt";
 	public final static String NOMBRE_2 = "texto2.txt";
-	public final static String UBICACION_LOG = "data/informes/log-";
+	public final static String LOG_PATH = "data/informes/log-";
 	public static BufferedWriter logWriter;
 	
 	public static int PUERTO = 49200;
@@ -38,7 +37,7 @@ public class Server {
 		try {
 			// INCIALIZACIÓN DEL LOG SEGÚN FECHA
 			String time = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(Calendar.getInstance().getTime());
-			File logFile = new File(UBICACION_LOG + time + ".txt");
+			File logFile = new File(LOG_PATH + time + ".txt");
 			logWriter = new BufferedWriter(new FileWriter(logFile));
 			
 			//System.out.println("Escriba el puerto en el que quiere realizar la conexión");
@@ -56,7 +55,7 @@ public class Server {
 			writeLog("Hora_Fecha: " + timeLog);
 			
 			// ELECCIÓN DEL ARCHIVO
-			System.out.println("Que archivo se va a enviar? (Escribir \"1\" para el de 250 MiB o \"2\" para el de 100 MiB)");
+			System.out.println("Que archivo se va a enviar? (Escribir \"1\" para el de 100 MiB o \"2\" para el de 250 MiB)");
 			
 			String fileName;
 			switch (console.nextInt()) {
@@ -67,11 +66,11 @@ public class Server {
 				fileName = NOMBRE_2;
 				break;
 			default:
-				System.out.println("Error: Número de archivo inválido");
+				System.out.println("Error: Numero de archivo invalido");
 				return;
 			}
 			writeLog("Nombre del archivo: " + fileName + ".");
-			writeLog("Tamaño del archivo: " + new File(TEXTOS_PATH + fileName) + " bytes.");
+			writeLog("Tamaño del archivo: " + (new File(TEXT_PATH + fileName).length() )  + " bytes.");
 			console.close();
 			
 			// INICIALIZACIÓN DE TODOS LOS SOCKETS
@@ -88,7 +87,8 @@ public class Server {
 					// CONFIGURACIÓN DE CANALES CON EL CLIENTE
 					DataOutputStream _DOS = new DataOutputStream(conections[idCliente].getOutputStream());
 					DataInputStream _DIS = new DataInputStream(conections[idCliente].getInputStream());
-					System.out.println("Conectando con el cliente #: " + (++idCliente) );
+					idCliente++;
+					System.out.println("Conectando con el cliente #: " + idCliente );
 					
 					// ENVÍA SU NOMBRE Y ID
 					_DOS.writeByte(1);
@@ -99,17 +99,17 @@ public class Server {
 					
 					// CONFIRMACIÓN DE LA CONEXIÓN
 					if(_DIS.readUTF().contentEquals("OK")) {
-						System.out.println("Cliente #"+ idCliente + " recibió el nombre del archivo y su ID");
-						writeLog("Conexión exitosa con el cliente #" + idCliente);
+						System.out.println("Cliente #"+ idCliente + " recibio el nombre del archivo y su ID");
+						writeLog("Conexion exitosa con el cliente #" + idCliente);
 					}
 					
 				} catch (Exception e) {
-					System.out.println("Error de conexión con los clientes");
+					System.out.println("Error de conexion con los clientes");
 				}
 			}
 			System.out.println("Inicio de envió del archivo " + fileName + " a los " + CANT_THREADS + " clientes.");
 			for (int i = 0; i < conections.length; i++) {
-				writeLog("Inicia envió al cliente #" + (i + 1));
+				writeLog("Inicia envio al cliente #" + (i + 1));
 				ProtocolThread thread = new ProtocolThread(conections[i], fileName, logWriter, (i + 1));
 				thread.start();
 			}
@@ -118,9 +118,7 @@ public class Server {
 			System.err.println(e.getMessage());
 			System.exit(1);
 			try {
-				logWriter.write("Hubo un error con el envío");
-				logWriter.newLine();
-				logWriter.flush();
+				writeLog("Error enviando el archivo: " + e.getMessage());
 			} catch (Exception ex) {
 				// TODO: handle exception
 			}
@@ -129,11 +127,11 @@ public class Server {
 	
 	/**
 	 * Escribe el mensaje en el log writer
-	 * @param message Mensaje a escribir
+	 * @param log Mensaje a escribir
 	 * @throws IOException
 	 */
-	private static void writeLog(String message) throws IOException {
-		logWriter.write(message);
+	private static void writeLog(String log) throws IOException {
+		logWriter.write(log);
 		logWriter.newLine();
 		logWriter.flush();
 	}

@@ -17,17 +17,13 @@ import java.util.Calendar;
 import java.util.Scanner;
 
 public class Client {
-
-	private static final int BUFFER_SIZE = 1024;
 	
-	private static final String DIR_DESCARGA = "data/downloads/download-";
-	public final static String UBICACION_LOG = "data/informes/log-";
+	private static final String DOWNLOADS_PATH = "data/downloads/download-";
+	public final static String lOG_PATH = "data/informes/log-";
 	
-	public static String DIRECCION = "192.168.137.1";
+	public static String DIRECCION = "192.168.4.162";
 	public static int PUERTO = 49200;
 	
-	private static BufferedWriter logWriter;
-
 	/**
 	 * Método principal del cliente, se encarga de la comunicación con el servidor
 	 * y dar inicio a la descarga de archivos
@@ -43,11 +39,6 @@ public class Client {
 		Socket socket = null;
 
 		try {
-			// INCIALIZACIÓN DEL LOG SEGÚN FECHA
-			String time = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(Calendar.getInstance().getTime());
-			File logFile = new File(UBICACION_LOG + time + ".txt");
-			logWriter = new BufferedWriter(new FileWriter(logFile));
-			
 			// 2. Conectarse al servidor TCP y mostrar que se ha realizado dicha conexión. 
 			// 	  Mostrar el estado de la conexión.
 
@@ -59,8 +50,9 @@ public class Client {
 			//int puerto = console.nextInt();
 						
 			// CONEXIÓN AL SOCKET
+			System.out.println("Conectando al servidor...");
 			socket = new Socket(DIRECCION, PUERTO);
-			System.out.println("ESTADO DE CONEXIÓN: " + !socket.isClosed() + " Esperando nombre del archivo...");
+			System.out.println("ESTADO DE CONEXION: " + !socket.isClosed() + " Esperando nombre del archivo...");
 
 			// CANAL DE ENTRADA Y SALIDA CON EL SERVIDOR
 			DataInputStream _DIS = new DataInputStream(socket.getInputStream());
@@ -79,7 +71,7 @@ public class Client {
 				fileDownload(id, fileName, socket);
 			}
 			else {
-				System.out.println("Formato erróneo");
+				System.out.println("Formato erroneo");
 			}
 			
 		}
@@ -110,8 +102,8 @@ public class Client {
 	 */
 	public static void fileDownload( int id, String fileName, Socket socket ) throws IOException {
 		// CANAL PARA LECTURA DEL ARCHIVO
-		FileOutputStream _FOS = new FileOutputStream(DIR_DESCARGA + fileName);
-		BufferedOutputStream _BOS  = new BufferedOutputStream(_FOS);;
+		FileOutputStream _FOS = new FileOutputStream(DOWNLOADS_PATH + fileName);
+		BufferedOutputStream _BOS  = new BufferedOutputStream(_FOS);
 
 		// CANAL DE COMUNICACIÓN CON EL SERVIDOR
 		DataInputStream _DIS = new DataInputStream(socket.getInputStream());
@@ -121,9 +113,6 @@ public class Client {
 			
 			// LOG DE LA FECHA, NOMBRE Y TAMAÑO
 			String timeLog = new SimpleDateFormat("HH-mm-ss_dd/MM/yyyy").format(Calendar.getInstance().getTime());
-			writeLog("Hora_Fecha: " + timeLog);
-			writeLog("Nombre del archivo: " + fileName + ".");
-			writeLog("Tamaño máximo de los paquetes: " + BUFFER_SIZE + " bytes.");
 			
 			// RECIBE EL HASH DEL ARCHIVO
 			String serverHash = _DIS.readUTF();
@@ -170,7 +159,7 @@ public class Client {
 			// 5. Verificar la integridad del archivo con respeto a la información entregada por el servidor. 
 			// GENERACIÓN DEL HASH
 			MessageDigest shaDigest = MessageDigest.getInstance("SHA-256");
-			String generatedHash = hash(shaDigest, ( new File(DIR_DESCARGA + fileName) ) );
+			String generatedHash = hash(shaDigest, ( new File(DOWNLOADS_PATH + fileName) ) );
 			
 			// VERIFICACIÓN DE INTEGRIDAD
 			boolean integridad = serverHash.equals(generatedHash);
@@ -190,22 +179,15 @@ public class Client {
 			// datos entre cliente y servidor.
 			
 			// REPORTE AL USUARIO
-			System.out.println("Descarga terminada. Tamaño del archivo: " + currentByte);
+			System.out.println("Descarga terminada. Tamanio del archivo: " + currentByte);
 			System.out.println("Tiempo total de la descarga: " + totalTime + "miliseconds" );
 			System.out.println("Número de paquetes leídos: " + numPaquetes);
 			System.out.println("El archivo está completo?: " + (currentByte > fileSize));
 			System.out.println("El archivo está correcto?: " + integridad);
 			
-			// REPORTE GURARDADO EN EL LOG	
-			writeLog("Descarga terminada. Tamaño del archivo: " + currentByte);
-			writeLog("Tiempo total de la descarga: " + totalTime );
-			writeLog("Número de paquetes leídos: " + numPaquetes);
-			writeLog("El archivo está completo?: " + (currentByte == fileSize) );
-			writeLog("El archivo está correcto?: " + integridad);
 
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
-			writeLog("Error la recepción del archivo: " + e.getMessage());
 		}
 		finally {
 			_FOS.close();
@@ -213,18 +195,6 @@ public class Client {
 			_DIS.close();
 			_DOS.close();
 		}
-	}
-
-	
-	/**
-	 * Escribe el mensaje en el log writer
-	 * @param message Mensaje a escribir
-	 * @throws IOException
-	 */
-	private static void writeLog(String message) throws IOException {
-		logWriter.write(message);
-		logWriter.newLine();
-		logWriter.flush();
 	}
 	
 	

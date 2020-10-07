@@ -24,29 +24,19 @@ public class ProtocolThread extends Thread {
 
 	private Socket socket = null;
 
-	private boolean conexion;
+	private static BufferedWriter logWriter;
 
-	private BufferedWriter logWriter;
+	private int clientId;
 
-	private int numCliente;
-
-	public ProtocolThread(Socket pSocket, String nombreArchivo, BufferedWriter writer, int numCliente) {
+	public ProtocolThread(Socket pSocket, String nombreArchivo, BufferedWriter logWriter, int id) {
 		socket = pSocket;
-		this.logWriter = writer;
-		this.numCliente = numCliente;
+		ProtocolThread.logWriter = logWriter;
+		clientId = id;
 		archivo = ARCHIVO_PATH + nombreArchivo;
 		try {
 			socket.setSoTimeout(30000);
 		} catch (SocketException e) {
 			e.printStackTrace();
-			try {
-				writer.write("Hubo un error con el envío");
-				writer.newLine();
-				writer.flush();
-			} catch (Exception ex) {
-				// TODO: handle exception
-				ex.printStackTrace();
-			}
 		}
 
 	}
@@ -54,24 +44,21 @@ public class ProtocolThread extends Thread {
 	public void run() {
 
 		try {
-			conexion = true;
-			pruebaProcesar();
-			conexion = !socket.isClosed();
+			sendFile();
 			socket.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 			try {
-				logWriter.write("Hubo un error con el envío");
-				logWriter.newLine();
-				logWriter.flush();
-			} catch (Exception ex) {
-				// TODO: handle exception
+				writeLog("Error en el socket");
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
 		}
 
 	}
 
-	public void pruebaProcesar() {
+	public void sendFile() {
 
 		FileInputStream fis = null;
 		BufferedInputStream bis = null;
@@ -113,7 +100,7 @@ public class ProtocolThread extends Thread {
 			// UN BYTE SI EL ARCHVIO SI ES INTEGRO
 			// 1 SI ESTÁ BIEN, 0 SI ESTA DAÑADO	
 			
-			logWriter.write("Se enviaron en total " + numPaquetes + " paquetes al cliente " + numCliente + " para un toltal de " + numPaquetes*256 + " bytes");
+			logWriter.write("Se enviaron en total " + numPaquetes + " paquetes al cliente " + clientId + " para un toltal de " + numPaquetes*256 + " bytes");
 			logWriter.newLine();
 			logWriter.flush();
 
@@ -123,14 +110,13 @@ public class ProtocolThread extends Thread {
 
 			os.flush();
 			System.out.println("Archivo enviado.");
-			logWriter.write("Archivo enviado exitosamente al cliente " + numCliente);
+			logWriter.write("Archivo enviado exitosamente al cliente " + clientId);
 			logWriter.newLine();
 			logWriter.flush();
 
 			logWriter.close();
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
-			conexion = false;
 			try {
 				logWriter.write("Hubo un error con el envío");
 				logWriter.newLine();
@@ -140,6 +126,17 @@ public class ProtocolThread extends Thread {
 			}
 		}
 
+	}
+	
+	/**
+	 * Escribe el mensaje en el log writer
+	 * @param log Mensaje a escribir
+	 * @throws IOException
+	 */
+	private static void writeLog(String log) throws IOException {
+		logWriter.write(log);
+		logWriter.newLine();
+		logWriter.flush();
 	}
 	
 	/**
