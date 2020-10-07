@@ -1,13 +1,11 @@
 package ClientTCP;
 
 import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
@@ -125,10 +123,11 @@ public class Client {
 			InputStream is = socket.getInputStream();
 			
 			// 4. Recibir un archivo del servidor por medio de una comunicación a través de sockets TCP.
+			
 			// RECEPCIÓN DEL PRIMER PAQUETE
 			int readedBytes = is.read(buffer, 0, buffer.length);
 			int currentByte = readedBytes;
-			int numPaquetes = 1;
+			int cantPaquetes = 1;
 
 			System.out.println("Inicia la descarga del archivo");
 
@@ -139,7 +138,7 @@ public class Client {
 			readedBytes = is.read(buffer, currentByte, (buffer.length - currentByte));
 			while (readedBytes > -1) {
 				// LECTURA DE UN PAQUETE
-				numPaquetes++;
+				cantPaquetes++;
 		
 				// ACTUALIZACIÓN DEL BYTE ACTUAL DEL MENSAJE
 				if (readedBytes >= 0)
@@ -167,6 +166,7 @@ public class Client {
 			// 6. Enviar notificación de recepción del archivo al servidor.
 			if(integridad) {
 				_DOS.writeByte(1);
+				_DOS.writeUTF(cantPaquetes + "");
 				System.out.println("Verificada la integridad del archivo");
 			}
 			else {
@@ -181,7 +181,7 @@ public class Client {
 			// REPORTE AL USUARIO
 			System.out.println("Descarga terminada. Tamanio del archivo: " + currentByte);
 			System.out.println("Tiempo total de la descarga: " + totalTime + "miliseconds" );
-			System.out.println("Número de paquetes leídos: " + numPaquetes);
+			System.out.println("Número de paquetes leídos: " + cantPaquetes);
 			System.out.println("El archivo está completo?: " + (currentByte == fileSize));
 			System.out.println("El archivo está correcto?: " + integridad);
 			
