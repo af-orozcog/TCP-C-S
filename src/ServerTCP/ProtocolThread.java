@@ -108,17 +108,18 @@ public class ProtocolThread extends Thread {
 
 			// VARIABLE PARA MEDIR EL TIEMPO DE DESCARGA
 			long totalTime = System.currentTimeMillis();
-
+			int sendedBytes = 0;
 			int cantPaquetes = 0;
 			// ENVIO DEL ARCHIVO A TRAVES DE PAQUETES
-			for(int i = 0; i <= file.length() - (file.length() % PACKAGE) ; i+=PACKAGE ) {
-				if(i == file.length() - (file.length() % PACKAGE)) {
-					_OUPUT.write(buffer, i, (int)file.length() % PACKAGE);
-				}
-				else {
-					_OUPUT.write(buffer, i, PACKAGE);
-				}
+			while (sendedBytes < buffer.length) {
 				cantPaquetes++;
+				if ((sendedBytes + PACKAGE) < buffer.length) {
+					_OUPUT.write(buffer, sendedBytes, PACKAGE);
+					sendedBytes += PACKAGE;
+				} else {
+					_OUPUT.write(buffer, sendedBytes, (buffer.length - sendedBytes));
+					sendedBytes += (buffer.length - sendedBytes) + 1;
+				}
 			}
 			totalTime = System.currentTimeMillis() - totalTime;
 
@@ -138,7 +139,7 @@ public class ProtocolThread extends Thread {
 			try {
 				writeLog("Error de comunicacion con el cliente");
 			} catch (Exception e1) {
-
+				e1.printStackTrace();
 			}
 		}
 		finally {

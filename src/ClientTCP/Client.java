@@ -17,7 +17,7 @@ public class Client {
 	private static final String DOWNLOADS_PATH = "data/downloads/download-";
 	public final static String lOG_PATH = "data/informes/log-";
 	
-	public static String DIRECCION = "192.168.0.8";
+	public static String DIRECCION = "192.168.4.162";
 	public static int PUERTO = 49200;
 	
 	/**
@@ -96,7 +96,6 @@ public class Client {
 		FileOutputStream _FOS = new FileOutputStream(DOWNLOADS_PATH + fileName);
 		BufferedOutputStream _BOS  = new BufferedOutputStream(_FOS);
 
-		System.out.println("que paso aqui??");
 		// CANAL DE COMUNICACIÓN CON EL SERVIDOR
 		DataInputStream _DIS = new DataInputStream(socket.getInputStream());
 		DataOutputStream _DOS = new DataOutputStream(socket.getOutputStream());
@@ -163,7 +162,7 @@ public class Client {
 			
 			// REPORTE AL USUARIO
 			System.out.println("Descarga terminada. Tamanio del archivo: " + currentByte);
-			System.out.println("Tiempo total de la descarga: " + totalTime + "miliseconds" );
+			System.out.println("Tiempo total de la descarga: " + totalTime + " miliseconds" );
 			System.out.println("Número de paquetes leídos: " + cantPaquetes);
 			System.out.println("El archivo está completo?: " + (currentByte == fileSize));
 			System.out.println("El archivo está correcto?: " + integridad);
