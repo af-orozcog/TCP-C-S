@@ -28,25 +28,25 @@ public class Server {
 	public static void main(String[] args) {
 		System.out.println("Servidor TCP: ");
 		
-		// HERRAMIENTA PARA LECTURA DE LA CONFIGURACIÓN DE LA CONEXIÓN
+		// HERRAMIENTA PARA LECTURA DE LA CONFIGURACION DE LA CONEXIÓN
 		Scanner console = new Scanner(System.in);
 		
-		// PREPARACIÓN DEL SOCKET
+		// PREPARACION DEL SOCKET
 		ServerSocket socket = null;
 		
 		try {
-			// INCIALIZACIÓN DEL LOG SEGÚN FECHA
+			// INCIALIZACION DEL LOG SEGÚN FECHA
 			String time = new SimpleDateFormat("dd_MM_yyyy-HH_mm_ss").format(Calendar.getInstance().getTime());
 			File logFile = new File(LOG_PATH + time + ".txt");
 			logWriter = new BufferedWriter(new FileWriter(logFile));
 			
-			//System.out.println("Escriba el puerto en el que quiere realizar la conexión");
+			//System.out.println("Escriba el puerto en el que quiere realizar la conexion");
 			//PUERTO = lectorConsola.nextInt();
 
-			// CREACIÓN DEL SOCKET
+			// CREACION DEL SOCKET
 			socket = new ServerSocket(PUERTO);
 
-			System.out.println("Ingrese número de conexiones: ");
+			System.out.println("Ingrese numero de conexiones: ");
 			CANT_THREADS = console.nextInt();
 
 			writeLog("Número de conexiones: " + CANT_THREADS);
@@ -54,7 +54,7 @@ public class Server {
 			String timeLog = new SimpleDateFormat("HH-mm-ss_dd/MM/yyyy").format(Calendar.getInstance().getTime());
 			writeLog("Hora_Fecha: " + timeLog);
 			
-			// ELECCIÓN DEL ARCHIVO
+			// ELECCION DEL ARCHIVO
 			System.out.println("Que archivo se va a enviar? (Escribir \"1\" para el de 100 MiB o \"2\" para el de 250 MiB)");
 			
 			String fileName;
@@ -70,15 +70,15 @@ public class Server {
 				return;
 			}
 			writeLog("Nombre del archivo: " + fileName + ".");
-			writeLog("Tamaño del archivo: " + (new File(TEXT_PATH + fileName).length() )  + " bytes.");
+			writeLog("Tamanio del archivo: " + (new File(TEXT_PATH + fileName).length() )  + " bytes.");
 			console.close();
 			
-			// INICIALIZACIÓN DE TODOS LOS SOCKETS
+			// INICIALIZACION DE TODOS LOS SOCKETS
 			Socket[] conections = new Socket[CANT_THREADS];
 			System.out.println("Esperando conexiones...");
 			int idCliente = 0;
 			
-			// RECEPCIÓN DE UN NUEVO CLIENTE
+			// RECEPCION DE UN NUEVO CLIENTE
 			while (idCliente < CANT_THREADS) {
 				DataOutputStream _DOS = null;
 				DataInputStream _DIS = null;
@@ -86,20 +86,20 @@ public class Server {
 					// LLEGADA DEL NUEVO CLIENTE
 					conections[idCliente] = socket.accept();
 					
-					// CONFIGURACIÓN DE CANALES CON EL CLIENTE
+					// CONFIGURACION DE CANALES CON EL CLIENTE
 					_DOS = new DataOutputStream(conections[idCliente].getOutputStream());
 					_DIS = new DataInputStream(conections[idCliente].getInputStream());
 					idCliente++;
 					System.out.println("Conectando con el cliente #: " + idCliente );
 					
-					// ENVÍA SU NOMBRE Y ID
+					// ENVIA SU NOMBRE Y ID
 					_DOS.writeByte(1);
 					_DOS.writeUTF(fileName);
 					_DOS.flush();
 					
 					_DOS.write(idCliente);
 					
-					// CONFIRMACIÓN DE LA CONEXIÓN
+					// CONFIRMACION DE LA CONEXION
 					if(_DIS.readUTF().contentEquals("OK")) {
 						System.out.println("Cliente #"+ idCliente + " recibio el nombre del archivo y su ID");
 						writeLog("Conexion exitosa con el cliente #" + idCliente);
