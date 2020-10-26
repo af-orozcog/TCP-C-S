@@ -2,199 +2,156 @@ package ServerTCP;
 
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.net.SocketException;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 
-public class ProtocolThread extends Thread {
+public class ProtocolThread implements Runnable{
+	
+	//TAM DE LOS PAQUETES
+	private static int PACKAGE = 1024;
+	
+	//RUTAS ARCHIVOS
+	private static String TEXTO_1 = "data/textos/texto1.txt";
+	private static String TEXTO_2 = "data/textos/texto2.txt";
 
-	public final static String ARCHIVO_PATH = "data/textos/";
-	public final static int PACKAGE = 1024;
+	private Socket sc = null;
+	private int archivo;
+	private int idP;
+	private long time_start, time_end, time;
 
-	private Socket socket = null;
-	private static BufferedWriter logWriter;
+	private static File fileLog;
 
-	public String fileName = "";
-	private int clientId;
-
-	/**
-	 * Genera el thread de comunicacion con el cliente respectivo
-	 * @param pSocket socket de comunicacion
-	 * @param nombreArchivo nombre del archivo a enviar
-	 * @param logWriter log de la prueba actual
-	 * @param id id del cliente
+	/*
+	 * Constructor del protocolo del servidor
+	 * @param: csP socket designado
+	 * @param: idP Numero de thread que atiende
 	 */
-	public ProtocolThread(Socket pSocket, String nombreArchivo, BufferedWriter logWriter, int id) {
-		socket = pSocket;
-		ProtocolThread.logWriter = logWriter;
-		clientId = id;
-		fileName = ARCHIVO_PATH + nombreArchivo;
-		try {
-			socket.setSoTimeout(30000);
-		} catch (SocketException e) {
-			e.printStackTrace();
-		}
+	public ProtocolThread (Socket csP, int idP, int numArchivo, File archivoLog) {
+		
+		fileLog = archivoLog;
+		sc = csP;
+		this.idP=idP;
+		archivo = numArchivo;
+		this.run();
 
 	}
 
-	/**
-	 * 
+	/*
+	 * Generacion del archivo log. 
 	 */
-	public void run() {
-		try {
-			sendFile();
-		} catch (IOException e1) {
-			System.out.println("Error con el envio del archivo" + e1.getMessage());
+	private void writeLog(String pCadena) {
+		synchronized(fileLog)
+		{
 			try {
-				writeLog("Error con el envio del archivo al cliente " + clientId + ": " + e1.getMessage());
-			} catch (IOException e) {
+				FileWriter fw = new FileWriter(fileLog,true);
+				fw.append(pCadena + "\n");
+				fw.close();
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
-		try {
-			socket.close();
-		} catch (IOException e) {
-			System.out.println("Socket error - IOException: " + e.getMessage());
-		}
 
 	}
-
+	
 	/**
-	 * @throws IOException 
-	 * 
+	 * Método que genera hash para verificar inttegridad
+	 * @param ruta ruta del archivo
+	 * @param md MessageDigest que iene el algoritmo
+	 * @return String hexadecimal con hash de archivo
+	 * @throws IOException si falla lectura de archivo
 	 */
-	public void sendFile() throws IOException {
+	private String checksum(String ruta, MessageDigest md ) throws IOException{
+		try (DigestInputStream dis = new DigestInputStream(new FileInputStream(ruta), md)) {
+            while (dis.read() != -1) ; //empty loop to clear the data
+            md = dis.getMessageDigest();
+        }
 
-		FileInputStream _FIS = null;
-		BufferedInputStream _BIS = null;
-		DataOutputStream _DOS = null;
-		OutputStream _OUPUT = null;
-		DataInputStream _DIS = null;
+        // bytes to hex
+        StringBuilder result = new StringBuilder();
+        for (byte b : md.digest()) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
+	}
+	
+	@Override
+	public void run() {
 
 		try {
-			// BUSCA EL ARCHIVO A ENVIAR Y SE GENERA UN CANAL PARA LEER EL MISMO
-			File file = new File(fileName);
-			_FIS = new FileInputStream(file);
-			_BIS = new BufferedInputStream(_FIS);
-
-			// SE ALMACENA EL ARCHIVO EN BUFFER
-			byte[] buffer = new byte[(int) file.length()];
-			_BIS.read(buffer, 0, buffer.length);
-
-			// SE GENERA EL HASH DEL ARCHIVO
-			MessageDigest shaDigest = MessageDigest.getInstance("SHA-256");
-			String hashEnviar = checkSum(shaDigest, file );
-
-			// SE CREA UN CANAL DE COMUNICACION CON EL CLIENTE
-			_DOS = new DataOutputStream(socket.getOutputStream());
-
-			// SE ENVIA EL HASH DEL ARCHIVO
-			_DOS.writeUTF(hashEnviar);
-
-			// SE ENVIA EL TAMANIO DEL ARCHIVO
-			_DOS.writeInt((int)file.length());
-
-			// SE INICIA EL CANAL DE ENVIO
-			System.out.println("Enviando "+ file.getName() + " de tamanio: " + buffer.length + " bytes al usuario " + clientId);
-			_OUPUT = new BufferedOutputStream(socket.getOutputStream());
-
-			// VARIABLE PARA MEDIR EL TIEMPO DE DESCARGA
-			long totalTime = System.currentTimeMillis();
-			int sendedBytes = 0;
-			int cantPaquetes = 0;
 			
-			// ENVIO DEL ARCHIVO A TRAVES DE PAQUETES
-			while (sendedBytes < buffer.length) {
-				cantPaquetes++;
-				if ((sendedBytes + PACKAGE) < buffer.length) {
-					_OUPUT.write(buffer, sendedBytes, PACKAGE);
-					sendedBytes += PACKAGE;
-				} else {
-					_OUPUT.write(buffer, sendedBytes, (buffer.length - sendedBytes));
-					sendedBytes += (buffer.length - sendedBytes) + 1;
-				}
-			}
-			totalTime = System.currentTimeMillis() - totalTime;
-
-			// EL CLIENTE NOTIFICA QUE LA RECEPCION DEL ARCHIVO
-			_DIS = new DataInputStream(socket.getInputStream());
-			if(_DIS.readByte() == 1) {
-				writeLog("La entrega del archivo al cliente "+ clientId +" fue exitosa");
-				writeLog("Tiempo de transferencia del cliente " + clientId +": " + totalTime + " miliseconds");
-				writeLog("Cliente#"+clientId+" - paquetes enviados: " + cantPaquetes + " - paquetes recibidos: " + _DIS.readUTF());
+			//RECUPERA EL ARCHIVO A ENVIAR
+			File file;
+			if(archivo == 1) {
+				file = new File(TEXTO_1);
 			}
 			else {
-				writeLog("La entrega del archivo al cliente " + clientId +"no fue exitosa");
+				file = new File(TEXTO_2);
 			}
-
-		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			try {
-				writeLog("Error de comunicacion con el cliente");
-			} catch (Exception e1) {
+			
+			//CREA BUFFER Y CANALES DE COMUNICACION EN SOCKET
+			byte[] archivoBytes = new byte[(int) file.length()];
+			FileInputStream fis = new FileInputStream(file);
+			BufferedInputStream bis = new BufferedInputStream(fis);
+			
+			bis.read(archivoBytes, 0, archivoBytes.length);
+			OutputStream os = sc.getOutputStream();
+			
+			//GENERA HASH DEL ARCHIVO PARA COMPROBACION
+			MessageDigest md = MessageDigest.getInstance("SHA-1");
+			String hexa = checksum(file.getPath(), md);
+			
+			// ENVÍA EL HASH
+			DataOutputStream dos = new DataOutputStream(sc.getOutputStream());
+			dos.writeUTF(hexa);
+			dos.writeInt((int)file.length());
+			
+			//NOTIFICA ENVIO DE ARCHIVO Y COMIENZA PROCESO
+			System.out.println("Enviando el texto: "+ file.getName() + " de tamanio: " + archivoBytes.length + " Bytes");
+			
+			int enviados = 0;
+			time_start = System.currentTimeMillis();
+			for(int i = 0; i <= file.length() - (file.length() % PACKAGE) ; i+=PACKAGE ) {
+				if(i == file.length() - (file.length() % PACKAGE)) {
+					os.write(archivoBytes, i, (int)file.length() % PACKAGE);
+				}
+				else {
+					os.write(archivoBytes, i, PACKAGE);
+				}
+				enviados++;
+				System.out.println("Paquetes enviados: " + enviados + "/" + (int)(file.length() / PACKAGE));
 			}
+			
+			
+			//NOTIFICA TERMINACION DE ENVIO Y RECEPCION DEL ARCHIVO POR PARTE EL CLIENTE
+			DataInputStream dis = new DataInputStream(sc.getInputStream());
+			if(dis.readByte() == 1) {
+				time_end = System.currentTimeMillis();
+				time = time_end - time_start;
+				String cadena = "Entrega de archivo a cliente " + idP + " fue exitosa. Tomó " + time / 1000 + " segundos";
+				writeLog(cadena);
+				cadena = "Paquetes enviados " + enviados + " se enviaron " + (int) file.length() + " Bytes";
+				writeLog(cadena);
+				cadena = "Paquetes recibidos " + enviados + " se recibieron " + (int) file.length() + " Bytes";
+				writeLog(cadena);
+				System.out.println("Envío de archivo terminado. Cliente ya lo recibió.");
+			}
+			dis.close();
+			bis.close();
+			os.close();
+			sc.close();
 		}
-		finally {
-			logWriter.close();
+		catch(Exception e) {
+			System.out.println("Error en proceso de envío... " + e.getMessage());
 		}
-
+		
 	}
 
-	/**
-	 * Escribe el mensaje en el log writer
-	 * @param log Mensaje a escribir
-	 * @throws IOException
-	 */
-	private static void writeLog(String log) throws IOException {
-		logWriter.write(log);
-		logWriter.newLine();
-		logWriter.flush();
-	}
-
-	/**
-	 * Calcula el hash del archivo usando un digest
-	 * @param digest Digest a utilizar
-	 * @param file Archivo
-	 * @return El hash del archivo
-	 * @throws IOException
-	 */
-	private static String checkSum(MessageDigest digest, File file) throws IOException
-	{
-		//Get file input stream for reading the file content
-		FileInputStream fis = new FileInputStream(file);
-
-		//Create byte array to read data in chunks
-		byte[] byteArray = new byte[1024];
-		int bytesCount = 0; 
-
-		//Read file data and update in message digest
-		while ((bytesCount = fis.read(byteArray)) != -1) {
-			digest.update(byteArray, 0, bytesCount);
-		};
-
-		//close the stream; We don't need it now.
-		fis.close();
-
-		//Get the hash's bytes
-		byte[] bytes = digest.digest();
-
-		//This bytes[] has bytes in decimal format;
-		//Convert it to hexadecimal format
-		StringBuilder sb = new StringBuilder();
-		for(int i=0; i< bytes.length ;i++)
-		{
-			sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-		}
-
-		//return complete hash
-		return sb.toString();
-	}
 }
